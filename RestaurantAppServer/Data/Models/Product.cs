@@ -1,29 +1,58 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
 
 namespace RestaurantAppServer.Data.Models
 {
     public class Product
     {
         [Key]
+        [JsonProperty("Id")]
         public int Id { get; set; }
+
         [Required]
+        [JsonProperty("Name")]
         public string Name { get; set; }
+
+        [JsonProperty("NameAn")]
         public string NameAn { get; set; }
+
+        [JsonProperty("Description")]
         public string Description { get; set; }
+
+        [JsonProperty("DescriptionAn")]
         public string DescriptionAn { get; set; }
+
+        [JsonProperty("Price")]
         public double Price { get; set; }
-        public int discount { get; set; }
+
+        [JsonProperty("Discount")]
+        public int Discount { get; set; }
+
+        [JsonProperty("NbrOfSales")]
         public int NbrOfSales { get; set; }
-        public bool isAvailable { get; set; }
+
+        [JsonProperty("IsAvailable")]
+        public bool IsAvailable { get; set; }
+
+        [JsonProperty("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [JsonProperty("UpdatedAt")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        [ForeignKey(nameof(category))]
+        [ForeignKey(nameof(Category))]
+        [JsonProperty("CategoryId")]
         public int CategoryId { get; set; }
-        public Category category { get; set; }
 
-        public List<ProductImages>? ProductImages { get; set; }
+        [JsonProperty("Category")]
+        public Category Category { get; set; }
+
+        [JsonProperty("ProductImages")]
+        public List<ProductImages> ProductImages { get; set; }
+
         public Product()
         {
             ProductImages = new List<ProductImages>();
