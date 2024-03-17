@@ -33,7 +33,7 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var categories = await _db.Categories.ToListAsync();
+                var categories = await _db.Categories.Include(c => c.image).ToListAsync();
                 return Ok(new { status = true, categories });
             }
             catch
@@ -54,7 +54,6 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-
                 var result = await _imageService.AddImageAsync(file);
                 if (result.Error!=null)
                     return BadRequest(new { status = false, message = "Image upload failed" });
