@@ -15,7 +15,7 @@ namespace RestaurantAppServer.Data.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(image))]
-        public int ImageId { get; set; }
+        public int? ImageId { get; set; }
         public Image image { get; set; }
 
 
