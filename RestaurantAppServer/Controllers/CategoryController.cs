@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.Interfaces;
 using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
@@ -13,9 +14,12 @@ namespace RestaurantAppServer.Controllers
     {
 
         private readonly AppDbContext _db;
-        public CategoryController(AppDbContext db)
+        private readonly IImageService _imageService;
+
+        public CategoryController(AppDbContext db,IImageService imageService)
         {
             _db = db;
+            _imageService = imageService;
         }
 
         /**
@@ -46,17 +50,37 @@ namespace RestaurantAppServer.Controllers
          * @access          private(only admin)
          */
         [HttpPost]
-        public async Task<IActionResult> CreateCategory([FromBody] CategoryModel cm)
+        public async Task<IActionResult> CreateCategory(
+            [FromBody] CategoryModel cm,
+            IFormFile file
+        )
         {
             try
             {
+                
+                
+                var result = await _imageService.AddImageAsync(file);
+                if (result.Error!=null)
+                    return BadRequest(new { status = false, message = "Image upload failed" });
+                ImageModel img = new()
+                {
+                    PublicId = result.PublicId,
+                    Url = result.SecureUrl.AbsoluteUri
+                };
+                Image image = new()
+                {
+                    PublicId = img.PublicId,
+                    Url = img.Url
+                };
+                await _db.Images.AddAsync(image);
                 Category category = new()
                 {
                     Name = cm.Name,
                     NameAn = cm.NameAn,
-                    ImageId = cm.ImageId
+                    ImageId = image.Id,
                 };
                 await _db.Categories.AddAsync(category);
+                
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Category created with success" });
             }
