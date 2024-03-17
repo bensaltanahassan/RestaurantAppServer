@@ -13,11 +13,15 @@ namespace RestaurantAppServer.Data.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(order))]
-        public int OrderId { get; set; }
-        public Order order { get; set; }
+        public int? OrderId { get; set; }
+        public Order? order { get; set; }
 
         [ForeignKey(nameof(product))]
         public int ProductId { get; set; }
         public Product product { get; set; }
+
+        [ForeignKey(nameof(user))]
+        public int UserId { get; set; }
+        public User user { get; set; }
     }
 }
