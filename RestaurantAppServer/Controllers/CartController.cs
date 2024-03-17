@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -47,7 +48,7 @@ namespace RestaurantAppServer.Controllers
          * @access          private(only logged in user)
          */
         [HttpPost]
-        public async Task<IActionResult> AddToCartController([FromBody] OrderItem orderItem)
+        public async Task<IActionResult> AddToCartController([FromBody] OrderItemModel orderItem)
         {
             try
             {
@@ -69,7 +70,12 @@ namespace RestaurantAppServer.Controllers
                 }
                 else
                 {
-                    _db.OrderItems.Add(orderItem);
+                    OrderItem newOi = new() {
+                        Quantity = orderItem.Quantity,
+                        ProductId = orderItem.ProductId,
+                        UserId = userId,
+                    };
+                    _db.OrderItems.Add(newOi);
                 }
                 await _db.SaveChangesAsync();
                 return Ok(new {status=true,message="Add with success"});
