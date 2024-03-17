@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Interfaces;
 using RestaurantAppServer.Services;
+using RestaurantAppServer.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,7 @@ builder.Services.AddDbContext<AppDbContext>(op
     => op.UseSqlServer(builder.Configuration.GetConnectionString("myCon"))
 );
 // Cloudinary settings
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 builder.Services.AddScoped<IImageService, ImageService>();
 
 builder.Services.AddControllers();

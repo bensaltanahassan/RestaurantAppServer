@@ -50,15 +50,11 @@ namespace RestaurantAppServer.Controllers
          * @access          private(only admin)
          */
         [HttpPost]
-        public async Task<IActionResult> CreateCategory(
-            [FromBody] CategoryModel cm,
-            IFormFile file
-        )
+        public async Task<IActionResult> CreateCategory([FromForm] CategoryModel cm,IFormFile file)
         {
             try
             {
-                
-                
+
                 var result = await _imageService.AddImageAsync(file);
                 if (result.Error!=null)
                     return BadRequest(new { status = false, message = "Image upload failed" });
@@ -73,6 +69,8 @@ namespace RestaurantAppServer.Controllers
                     Url = img.Url
                 };
                 await _db.Images.AddAsync(image);
+                await _db.SaveChangesAsync();
+
                 Category category = new()
                 {
                     Name = cm.Name,
@@ -84,9 +82,9 @@ namespace RestaurantAppServer.Controllers
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Category created with success" });
             }
-            catch
+            catch(Exception e)
             {
-                return BadRequest(new { status = false, message = "Internal Server Error" });
+                return StatusCode(500,new { status = false, message = "Internal Server Error",error=e.Message });
             }
         }
 
