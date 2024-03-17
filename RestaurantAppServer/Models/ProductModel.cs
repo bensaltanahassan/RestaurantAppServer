@@ -10,5 +10,6 @@
         public int Discount { get; set; }
         public bool IsAvailable { get; set; }
         public int CategoryId { get; set; }
+        public int NbrOfSales { get; set; }
     }
 }
