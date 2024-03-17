@@ -50,9 +50,6 @@ namespace RestaurantAppServer.Data.Models
         [JsonProperty("Category")]
         public Category Category { get; set; }
 
-        [JsonProperty("CategoryNameAn")]
-        public string CategoryNameAn { get; set; }
-
         [JsonProperty("ProductImages")]
         public List<ProductImages> ProductImages { get; set; }
 
