@@ -6,7 +6,6 @@ namespace RestaurantAppServer.Data.Models
     {
         [Key]
         public int Id { get; set; }
-
         public string PublicId { get; set; }
         public string Url { get; set; }
 

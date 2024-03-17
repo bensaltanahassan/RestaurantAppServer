@@ -96,11 +96,11 @@ namespace RestaurantAppServer.Controllers
         }
 
         /**
-            * @description     DELETE Category
-            * @router          /api/categories/:id
-            * @method          DELETE
-            * @access          public
-            */
+        * @description     DELETE Category
+        * @router          /api/categories/:id
+        * @method          DELETE
+        * @access          private(only admin)
+        */
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
@@ -120,8 +120,6 @@ namespace RestaurantAppServer.Controllers
                 return BadRequest(new { status = false, message = "Internal Server Error" });
             }
         }
-
-
 
 
     }
