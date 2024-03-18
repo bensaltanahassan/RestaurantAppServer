@@ -75,7 +75,7 @@ namespace RestaurantAppServer.Controllers
             {
                 new ProductImages
                 {
-                    ImageId = image.Id 
+                    ImageId = image.Id
                 }
             }
                 };
@@ -97,7 +97,7 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
+                var product = await _db.Products.FindAsync(id);
                 if (product == null)
                 {
                     return BadRequest(new { status = false, message = "Product not found" });
@@ -129,7 +129,7 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id);
+                var product = await _db.Products.FindAsync(id);
                 if (product == null)
                 {
                     return BadRequest(new { status = false, message = "Product not found" });

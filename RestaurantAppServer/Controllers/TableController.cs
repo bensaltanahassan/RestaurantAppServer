@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.helpers.enums;
 using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
@@ -50,8 +51,7 @@ namespace RestaurantAppServer.Controllers
                 };
                 await _db.Tables.AddAsync(tb);
                 await _db.SaveChangesAsync();
-
-                return Ok(new { status = true, message = "Table Added with success" });
+                return StatusCode(201, new { status = true, message = "Table Added with success", table });
 
             }
             catch (Exception err)
@@ -59,6 +59,30 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Serveur Error", error = err.Message });
             }
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateTableStatus(int id, [FromQuery] string status)
+        {
+            try
+            {
+                var table = await _db.Tables.FindAsync(id);
+                if (table == null) return StatusCode(404, new { status = false, message = "Table Not Found" });
+                table.Status = status switch
+                {
+                    "available" => TableStatus.Available.ToString(),
+                    "reserved" => TableStatus.Reserved.ToString(),
+                    _ => TableStatus.Available.ToString(),
+                };
+                _db.Tables.Update(table);
+                await _db.SaveChangesAsync();
+                return Ok(new { status = true, message = "Table Updated With Success", table });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Serveur Error", error = err.Message });
+            }
+        }
+
 
     }
 }
