@@ -12,19 +12,11 @@ namespace RestaurantAppServer.Controllers
     public class CartController : ControllerBase
     {
         private readonly AppDbContext _db;
-        public CartController(AppDbContext db)
-        {
-            _db = db;
-        }
+        public CartController(AppDbContext db) => _db = db;
 
-        /**
-         * @description     Get all product
-         * @router          /:id
-         * @method          GET
-         * @access          private(only logged in user)
-         */
+
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetAllProductFromCartController(int id)
+        public async Task<IActionResult> GetAllProductFromCart(int id)
         {
             try
             {
@@ -33,29 +25,24 @@ namespace RestaurantAppServer.Controllers
                     .Where(oi => oi.UserId == userId && oi.order == null)
                     .Include(oi => oi.product)
                     .ToListAsync();
-                return Ok(new {status=true,cart});
+                return Ok(new { status = true, cart });
             }
-            catch (Exception e)
+            catch (Exception err)
             {
-                return BadRequest(new { status = false, message = e.Message });
+                return StatusCode(500, new { status = false, message = "Internal Serveur Error", error = err.Message });
             }
         }
 
-        /**
-         * @description     Add to Cart
-         * @router          /cart
-         * @method          POST
-         * @access          private(only logged in user)
-         */
+
         [HttpPost]
-        public async Task<IActionResult> AddToCartController([FromBody] OrderItemModel orderItem)
+        public async Task<IActionResult> AddToCart([FromBody] OrderItemModel orderItem)
         {
             try
             {
                 var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == orderItem.ProductId);
                 if (product == null)
                 {
-                    return BadRequest(new {status=false,message= "Product not found" });
+                    return BadRequest(new { status = false, message = "Product not found" });
                 }
                 int userId = orderItem.UserId;
                 var cart = await _db.OrderItems
@@ -70,7 +57,8 @@ namespace RestaurantAppServer.Controllers
                 }
                 else
                 {
-                    OrderItem newOi = new() {
+                    OrderItem newOi = new()
+                    {
                         Quantity = orderItem.Quantity,
                         ProductId = orderItem.ProductId,
                         UserId = userId,
@@ -78,58 +66,49 @@ namespace RestaurantAppServer.Controllers
                     _db.OrderItems.Add(newOi);
                 }
                 await _db.SaveChangesAsync();
-                return Ok(new {status=true,message="Add with success"});
+                return Ok(new { status = true, message = "Add with success" });
             }
-            catch (Exception e)
+            catch (Exception err)
             {
-                return BadRequest(new { status = false, message = e.Message });
+                return StatusCode(500, new { status = false, message = "Internal Serveur Error", error = err.Message });
             }
         }
 
-        /**
-         * @description     DELETE from Cart
-         * @router          /:id
-         * @method          DELETE
-         * @access          private(only logged in user)
-         */
+
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteFromCartController(int id)
+        public async Task<IActionResult> DeleteFromCart(int id)
         {
-            try {
-                int oiId = id;
-                var oi = await _db.Orders.FirstOrDefaultAsync(o => o.Id == oiId);
-                if (oi==null)
+            try
+            {
+                var oi = await _db.Orders.FindAsync(id);
+                if (oi == null)
                 {
-                    return BadRequest(new {status=false,message= "Cart Item not found" });
+                    return BadRequest(new { status = false, message = "Cart Item not found" });
                 }
                 _db.Orders.Remove(oi);
                 await _db.SaveChangesAsync();
-                return Ok(new {status=true,message= "Deleted successfuly" });
+                return Ok(new { status = true, message = "Deleted successfuly" });
             }
-            catch(Exception e)
+            catch (Exception err)
             {
-                return BadRequest(new { status = false, message = e.Message });
+                return StatusCode(500, new { status = false, message = "Internal Serveur Error", error = err.Message });
             }
         }
 
-        /**
-         * @description     Increase/Deacrease quanitity
-         * @router          /:id
-         * @method          PUT
-         * @access          private(only logged in user)
-         */
         [HttpPut("{id}")]
-        public async Task<IActionResult> IncDecQuantityController(int id, [FromBody] int quantity){
-            try {
+        public async Task<IActionResult> IncDecQuantity(int id, [FromBody] int quantity)
+        {
+            try
+            {
                 int oiId = id;
-                var oi = await _db.OrderItems.SingleOrDefaultAsync(x=> x.Id == oiId);
-                if (oi==null)
+                var oi = await _db.OrderItems.FindAsync(id);
+                if (oi == null)
                 {
-                    return BadRequest(new { status = false, message="Cart Item not found" }) ;
+                    return BadRequest(new { status = false, message = "Cart Item not found" });
                 }
                 // if  (cart.quantity===1 and quantity===-1) ==> remove it
-                if (oi.Quantity==1 && quantity==-1)
+                if (oi.Quantity == 1 && quantity == -1)
                 {
                     _db.OrderItems.Remove(oi);
                 }
@@ -137,12 +116,12 @@ namespace RestaurantAppServer.Controllers
                 oi.Quantity += quantity;
                 await _db.SaveChangesAsync();
 
-                return Ok(new { status = false,message="Success" }) ;
+                return Ok(new { status = false, message = "Success" });
 
             }
-            catch (Exception e)
+            catch (Exception err)
             {
-                return BadRequest(new {status=false,message=e.Message});
+                return StatusCode(500, new { status = false, message = "Internal Serveur Error", error = err.Message });
             }
 
         }
