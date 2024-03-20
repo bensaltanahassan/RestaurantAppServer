@@ -146,5 +146,90 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("AddToFavorites")]
+        public async Task<IActionResult> AddToFavorites(int userId, int productId)
+        {
+            try
+            {
+                var user = await _db.Users.FindAsync(userId);
+                var product = await _db.Products.FindAsync(productId);
+
+                if (user == null || product == null)
+                {
+                    return BadRequest(new { status = false, message = "User or product not found" });
+                }
+
+                var existingFavorite = await _db.Favorites
+                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+
+                if (existingFavorite != null)
+                {
+                    return BadRequest(new { status = false, message = "Product already in favorites" });
+                }
+
+                var favorite = new Favorite
+                {
+                    UserId = userId,
+                    ProductId = productId
+                };
+
+                await _db.Favorites.AddAsync(favorite);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Product added to favorites successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+
+
+        [HttpPost]
+        [Route("AddToCart")]
+        public async Task<IActionResult> AddToCart(int userId, int productId, int quantity)
+        {
+            try
+            {
+                var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == productId);
+                if (product == null)
+                {
+                    return BadRequest(new { status = false, message = "Product not found" });
+                }
+
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    return BadRequest(new { status = false, message = "User not found" });
+                }
+
+                var cartItem = await _db.OrderItems.FirstOrDefaultAsync(oi => oi.UserId == userId && oi.ProductId == productId && oi.OrderId == null);
+                if (cartItem != null)
+                {
+                    cartItem.Quantity += quantity;
+                    _db.OrderItems.Update(cartItem);
+                }
+                else
+                {
+                    var newCartItem = new OrderItem
+                    {
+                        Quantity = quantity,
+                        ProductId = productId,
+                        UserId = userId,
+                    };
+                    _db.OrderItems.Add(newCartItem);
+                }
+
+                await _db.SaveChangesAsync();
+                return Ok(new { status = true, message = "Product added to cart successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+
+
     }
 }
