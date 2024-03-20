@@ -22,12 +22,6 @@ namespace RestaurantAppServer.Controllers
             _imageService = imageService;
         }
 
-        /**
-         * @description     Get all categories
-         * @router          /
-         * @method          GET
-         * @access          public
-         */
         [HttpGet]
         public async Task<IActionResult> GetCategories()
         {
@@ -36,19 +30,12 @@ namespace RestaurantAppServer.Controllers
                 var categories = await _db.Categories.Include(c => c.image).ToListAsync();
                 return Ok(new { status = true, categories });
             }
-            catch
+            catch (Exception e)
             {
-                return BadRequest(new { status = false, message = "Internal Server Error" });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
         }
 
-
-        /**
-         * @description     Create New category
-         * @router          /
-         * @method          POST
-         * @access          private(only admin)
-         */
         [HttpPost]
         public async Task<IActionResult> CreateCategory([FromForm] CategoryModel cm, IFormFile file)
         {
@@ -87,60 +74,100 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
-        /**
-         * @description     Update category
-         * @router          /
-         * @method          PUT
-         * @access          private(only admin)
-         */
+
+
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryModel cm)
+        public async Task<IActionResult> UpdateCategory(int id, [FromForm] CategoryModel cm, IFormFile? file)
         {
             try
             {
-                var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == id);
+                var category = await _db.Categories.Include(c => c.image).FirstOrDefaultAsync(c => c.Id == id);
                 if (category == null)
                 {
-                    return StatusCode(404, new { status = false, message = "Category not found" });
+                    return NotFound(new { status = false, message = "Category not found" });
                 }
+
+                // Update category properties if provided
                 if (cm.Name != null) category.Name = cm.Name;
                 if (cm.NameAn != null) category.NameAn = cm.NameAn;
-                if (cm.ImageId != null) category.ImageId = cm.ImageId;
+
+                // Handle image upload if provided
+                if (file != null)
+                {
+                    Image? oldImage = null;
+                    if (category.image != null)
+                    {
+                        // Delete old image from cloud
+                        var resultOldImage = await _imageService.DeleteImageAsync(category.image.PublicId);
+                        if (resultOldImage.Error != null)
+                            return BadRequest(new { status = false, message = "Failed to delete old image" });
+                        //assigne the image to oldImage
+                        oldImage = category.image;
+                    }
+
+                    // Upload new image
+                    var result = await _imageService.AddImageAsync(file);
+                    if (result.Error != null)
+                        return BadRequest(new { status = false, message = "Failed to upload new image" });
+
+                    // Create new image record
+                    Image image = new()
+                    {
+                        PublicId = result.PublicId,
+                        Url = result.SecureUrl.AbsoluteUri
+                    };
+                    await _db.Images.AddAsync(image);
+                    await _db.SaveChangesAsync();
 
 
+                    // Update category with new image
+                    category.image = image;
+
+                    //delete oldImage from db
+                    if (oldImage != null) _db.Images.Remove(oldImage);
+
+                }
+
+                // Update category in the database
                 _db.Categories.Update(category);
                 await _db.SaveChangesAsync();
-                return Ok(new { status = true, message = "Category updated with success" });
+
+                return Ok(new { status = true, message = "Category updated successfully" });
             }
             catch (Exception err)
             {
-                return BadRequest(new { status = false, message = "Internal Server Error", err = err.Message });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message, details = err.InnerException?.Message });
             }
         }
 
-        /**
-        * @description     DELETE Category
-        * @router          /api/categories/:id
-        * @method          DELETE
-        * @access          private(only admin)
-        */
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
             try
             {
-                var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == id);
+                var category = await _db.Categories.Include(c => c.image).FirstOrDefaultAsync(c => c.Id == id);
                 if (category == null)
                 {
-                    return BadRequest(new { status = false, message = "Category not found" });
+                    return NotFound(new { status = false, message = "Category not found" });
+                }
+                if (category.image != null)
+                {
+                    // Delete image from cloud
+                    var resultOldImage = await _imageService.DeleteImageAsync(category.image.PublicId);
+                    if (resultOldImage.Error != null)
+                        return BadRequest(new { status = false, message = "Failed to delete old image" });
+                    _db.Images.Remove(category.image);
                 }
                 _db.Categories.Remove(category);
+
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Category deleted with success" });
             }
-            catch
+            catch (Exception e)
             {
-                return BadRequest(new { status = false, message = "Internal Server Error" });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
         }
 
