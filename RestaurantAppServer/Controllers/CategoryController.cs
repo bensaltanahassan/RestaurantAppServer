@@ -16,7 +16,7 @@ namespace RestaurantAppServer.Controllers
         private readonly AppDbContext _db;
         private readonly IImageService _imageService;
 
-        public CategoryController(AppDbContext db,IImageService imageService)
+        public CategoryController(AppDbContext db, IImageService imageService)
         {
             _db = db;
             _imageService = imageService;
@@ -50,12 +50,12 @@ namespace RestaurantAppServer.Controllers
          * @access          private(only admin)
          */
         [HttpPost]
-        public async Task<IActionResult> CreateCategory([FromForm] CategoryModel cm,IFormFile file)
+        public async Task<IActionResult> CreateCategory([FromForm] CategoryModel cm, IFormFile file)
         {
             try
             {
                 var result = await _imageService.AddImageAsync(file);
-                if (result.Error!=null)
+                if (result.Error != null)
                     return BadRequest(new { status = false, message = "Image upload failed" });
                 ImageModel img = new()
                 {
@@ -77,13 +77,13 @@ namespace RestaurantAppServer.Controllers
                     ImageId = image.Id,
                 };
                 await _db.Categories.AddAsync(category);
-                
+
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Category created with success" });
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                return StatusCode(500,new { status = false, message = "Internal Server Error",error=e.Message });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
 
@@ -101,18 +101,20 @@ namespace RestaurantAppServer.Controllers
                 var category = await _db.Categories.FirstOrDefaultAsync(c => c.Id == id);
                 if (category == null)
                 {
-                    return BadRequest(new { status = false, message = "Category not found" });
+                    return StatusCode(404, new { status = false, message = "Category not found" });
                 }
-                category.Name = cm.Name;
-                category.NameAn = cm.NameAn;
-                category.ImageId = cm.ImageId;
+                if (cm.Name != null) category.Name = cm.Name;
+                if (cm.NameAn != null) category.NameAn = cm.NameAn;
+                if (cm.ImageId != null) category.ImageId = cm.ImageId;
+
+
                 _db.Categories.Update(category);
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Category updated with success" });
             }
-            catch
+            catch (Exception err)
             {
-                return BadRequest(new { status = false, message = "Internal Server Error" });
+                return BadRequest(new { status = false, message = "Internal Server Error", err = err.Message });
             }
         }
 
