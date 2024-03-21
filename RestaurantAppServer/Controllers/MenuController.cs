@@ -29,9 +29,42 @@ namespace RestaurantAppServer.Controllers
         [Route("GetItems")]
         public async Task<ActionResult<IEnumerable<Product>>> GetItems()
         {
-            var products = await _db.Products.Include(p => p.Category).ToListAsync();
-            return Ok(products);
+            var productsWithFirstImage = await _db.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                    .ThenInclude(pi => pi.image)
+                .Select(p => new Product
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    NameAn = p.NameAn,
+                    Description = p.Description,
+                    DescriptionAn = p.DescriptionAn,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    NbrOfSales = p.NbrOfSales,
+                    IsAvailable = p.IsAvailable,
+                    CategoryId = p.CategoryId,
+                    Category = new Category 
+                    {
+                        Id = p.Category.Id,
+                        Name = p.Category.Name,
+                        NameAn = p.Category.NameAn
+                    },
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    ProductImages = p.ProductImages.Select(pi => new ProductImages
+                    {
+                        Id = pi.Id,
+                        image = pi.image 
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return Ok(productsWithFirstImage);
         }
+
+
 
         [HttpPost]
         [Route("CreateItems")]

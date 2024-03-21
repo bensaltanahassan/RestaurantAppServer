@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
+using RestaurantAppServer.Data.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -88,7 +89,38 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
+        [HttpPost("{userId}/{productId}")]
+        public async Task<IActionResult> AddProductToCart(int userId, int productId)
+        {
+            try
+            {
+                var existingOrderItem = await _db.OrderItems
+                    .FirstOrDefaultAsync(oi => oi.UserId == userId && oi.ProductId == productId && oi.OrderId == null);
 
+                if (existingOrderItem != null)
+                {
+                    existingOrderItem.Quantity++;
+                }
+                else
+                {
+                    var orderItem = new OrderItem
+                    {
+                        UserId = userId,
+                        ProductId = productId,
+                        Quantity = 1
+                    };
+                    _db.OrderItems.Add(orderItem);
+                }
+
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Product added to cart successfully" });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
+            }
+        }
 
     }
 }
