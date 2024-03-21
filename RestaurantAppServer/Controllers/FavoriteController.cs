@@ -16,7 +16,7 @@ namespace RestaurantAppServer.Controllers
             _db = db; 
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{userId}")]
         public async Task<IActionResult> GetAllProductsInFavorites(int userId)
         {
             try
@@ -24,18 +24,49 @@ namespace RestaurantAppServer.Controllers
                 var favorites = await _db.Favorites
                     .Where(f => f.UserId == userId)
                     .Include(f => f.product)
+                        .ThenInclude(p => p.Category)
+                    .Include(f => f.product)
+                        .ThenInclude(p => p.ProductImages)
+                            .ThenInclude(pi => pi.image)
+                    .Select(f => new
+                    {
+                        Product = new Product
+                        {
+                            Id = f.product.Id,
+                            Name = f.product.Name,
+                            NameAn = f.product.NameAn,
+                            Description = f.product.Description,
+                            DescriptionAn = f.product.DescriptionAn,
+                            Price = f.product.Price,
+                            Discount = f.product.Discount,
+                            NbrOfSales = f.product.NbrOfSales,
+                            IsAvailable = f.product.IsAvailable,
+                            CategoryId = f.product.CategoryId,
+                            Category = new Category
+                            {
+                                Id = f.product.Category.Id,
+                                Name = f.product.Category.Name,
+                                NameAn = f.product.Category.NameAn
+                            },
+                            CreatedAt = f.product.CreatedAt,
+                            UpdatedAt = f.product.UpdatedAt,
+                            ProductImages = f.product.ProductImages.Select(pi => new ProductImages
+                            {
+                                Id = pi.Id,
+                                image = pi.image
+                            }).ToList()
+                        }
+                    })
                     .ToListAsync();
 
-                
-                var products = favorites.Select(f => f.product).ToList();
-
-                return Ok(new { status = true, products });
+                return Ok(new { status = true, products = favorites.Select(f => f.Product).ToList() });
             }
             catch (Exception err)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
             }
         }
+
 
 
         [HttpDelete("{userId}/{productId}")]
@@ -89,36 +120,43 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
-        [HttpPost("{userId}/{productId}")]
-        public async Task<IActionResult> AddProductToCart(int userId, int productId)
+
+        [HttpPost]
+        [Route("AddToFavorites")]
+        public async Task<IActionResult> AddToFavorites(int userId, int productId)
         {
             try
             {
-                var existingOrderItem = await _db.OrderItems
-                    .FirstOrDefaultAsync(oi => oi.UserId == userId && oi.ProductId == productId && oi.OrderId == null);
+                var user = await _db.Users.FindAsync(userId);
+                var product = await _db.Products.FindAsync(productId);
 
-                if (existingOrderItem != null)
+                if (user == null || product == null)
                 {
-                    existingOrderItem.Quantity++;
-                }
-                else
-                {
-                    var orderItem = new OrderItem
-                    {
-                        UserId = userId,
-                        ProductId = productId,
-                        Quantity = 1
-                    };
-                    _db.OrderItems.Add(orderItem);
+                    return BadRequest(new { status = false, message = "User or product not found" });
                 }
 
+                var existingFavorite = await _db.Favorites
+                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+
+                if (existingFavorite != null)
+                {
+                    return BadRequest(new { status = false, message = "Product already in favorites" });
+                }
+
+                var favorite = new Favorite
+                {
+                    UserId = userId,
+                    ProductId = productId
+                };
+
+                await _db.Favorites.AddAsync(favorite);
                 await _db.SaveChangesAsync();
 
-                return Ok(new { status = true, message = "Product added to cart successfully" });
+                return Ok(new { status = true, message = "Product added to favorites successfully" });
             }
-            catch (Exception err)
+            catch (Exception e)
             {
-                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
 
