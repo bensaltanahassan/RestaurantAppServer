@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -69,13 +70,12 @@ namespace RestaurantAppServer.Controllers
 
 
 
-        [HttpDelete("{userId}/{productId}")]
-        public async Task<IActionResult> DeleteFromFavorites(int userId, int productId)
+        [HttpDelete("{favoriteId}")]
+        public async Task<IActionResult> DeleteFavorite(int favoriteId)
         {
             try
             {
-                var favorite = await _db.Favorites
-                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+                var favorite = await _db.Favorites.FindAsync(favoriteId);
 
                 if (favorite == null)
                 {
@@ -85,7 +85,7 @@ namespace RestaurantAppServer.Controllers
                 _db.Favorites.Remove(favorite);
                 await _db.SaveChangesAsync();
 
-                return Ok(new { status = true, message = "Product deleted from favorites successfully" });
+                return Ok(new { status = true, message = "Favorite deleted successfully" });
             }
             catch (Exception err)
             {
@@ -93,7 +93,8 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
-        [HttpDelete("{userId}")]
+
+        [HttpDelete("user/{userId}")]
         public async Task<IActionResult> DeleteAllProductsFromFavorites(int userId)
         {
             try
@@ -123,12 +124,12 @@ namespace RestaurantAppServer.Controllers
 
         [HttpPost]
         [Route("AddToFavorites")]
-        public async Task<IActionResult> AddToFavorites(int userId, int productId)
+        public async Task<IActionResult> AddToFavorites([FromBody] FavoriteModel favoriteModel)
         {
             try
             {
-                var user = await _db.Users.FindAsync(userId);
-                var product = await _db.Products.FindAsync(productId);
+                var user = await _db.Users.FindAsync(favoriteModel.UserId);
+                var product = await _db.Products.FindAsync(favoriteModel.ProductId);
 
                 if (user == null || product == null)
                 {
@@ -136,7 +137,7 @@ namespace RestaurantAppServer.Controllers
                 }
 
                 var existingFavorite = await _db.Favorites
-                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+                    .FirstOrDefaultAsync(f => f.UserId == favoriteModel.UserId && f.ProductId == favoriteModel.ProductId);
 
                 if (existingFavorite != null)
                 {
@@ -145,8 +146,8 @@ namespace RestaurantAppServer.Controllers
 
                 var favorite = new Favorite
                 {
-                    UserId = userId,
-                    ProductId = productId
+                    UserId = favoriteModel.UserId,
+                    ProductId = favoriteModel.ProductId
                 };
 
                 await _db.Favorites.AddAsync(favorite);
@@ -159,6 +160,7 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
+
 
     }
 }
