@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -123,12 +124,12 @@ namespace RestaurantAppServer.Controllers
 
         [HttpPost]
         [Route("AddToFavorites")]
-        public async Task<IActionResult> AddToFavorites(int userId, int productId)
+        public async Task<IActionResult> AddToFavorites([FromBody] FavoriteModel favoriteModel)
         {
             try
             {
-                var user = await _db.Users.FindAsync(userId);
-                var product = await _db.Products.FindAsync(productId);
+                var user = await _db.Users.FindAsync(favoriteModel.UserId);
+                var product = await _db.Products.FindAsync(favoriteModel.ProductId);
 
                 if (user == null || product == null)
                 {
@@ -136,7 +137,7 @@ namespace RestaurantAppServer.Controllers
                 }
 
                 var existingFavorite = await _db.Favorites
-                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+                    .FirstOrDefaultAsync(f => f.UserId == favoriteModel.UserId && f.ProductId == favoriteModel.ProductId);
 
                 if (existingFavorite != null)
                 {
@@ -145,8 +146,8 @@ namespace RestaurantAppServer.Controllers
 
                 var favorite = new Favorite
                 {
-                    UserId = userId,
-                    ProductId = productId
+                    UserId = favoriteModel.UserId,
+                    ProductId = favoriteModel.ProductId
                 };
 
                 await _db.Favorites.AddAsync(favorite);
@@ -159,6 +160,7 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
+
 
     }
 }
