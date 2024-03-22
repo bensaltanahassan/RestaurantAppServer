@@ -66,7 +66,7 @@ namespace RestaurantAppServer.Controllers
             try
             {
                 var table = await _db.Tables.FindAsync(id);
-                if (table == null) return StatusCode(404, new { status = false, message = "Table Not Found" });
+                if (table == null) return NotFound(new { status = false, message = "Table Not Found" });
                 table.Status = status switch
                 {
                     "available" => TableStatus.Available.ToString(),

@@ -77,7 +77,7 @@ namespace RestaurantAppServer.Controllers
             try
             {
                 var rv = await _db.Reservations.FindAsync(id);
-                if (rv == null) return StatusCode(404, new { status = false, message = "Reservation Not Found" });
+                if (rv == null) return NotFound(new { status = false, message = "Reservation Not Found" });
                 rv.Status = status switch
                 {
                     "confirm" => ReservationStatus.Confirmed.ToString(),
