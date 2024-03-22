@@ -14,12 +14,12 @@ namespace RestaurantAppServer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class MenuController : ControllerBase
+    public class ProductController : ControllerBase
     {
         private readonly AppDbContext _db;
         private readonly IImageService _imageService;
 
-        public MenuController(AppDbContext db, IImageService imageService)
+        public ProductController(AppDbContext db, IImageService imageService)
         {
             _db = db;
             _imageService = imageService;
@@ -150,12 +150,12 @@ namespace RestaurantAppServer.Controllers
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     ProductImages = new List<ProductImages>
-            {
-                new ProductImages
-                {
-                    ImageId = image.Id
-                }
-            }
+                    {
+                        new ProductImages
+                        {
+                            ImageId = image.Id
+                        }
+                    }
                 };
 
                 await _db.Products.AddAsync(product);
@@ -206,12 +206,12 @@ namespace RestaurantAppServer.Controllers
                     await _db.SaveChangesAsync();
 
                     product.ProductImages = new List<ProductImages>
-            {
-                new ProductImages
-                {
-                    ImageId = image.Id
-                }
-            };
+                    {
+                        new ProductImages
+                        {
+                            ImageId = image.Id
+                        }
+                    };
                 }
 
                 product.Name = pm.Name;
@@ -259,6 +259,57 @@ namespace RestaurantAppServer.Controllers
                 return BadRequest(new { status = false, message = "Internal Server Error" });
             }
         }
+
+        [HttpGet]
+        [Route("SearchProduct")]
+        public async Task<ActionResult<IEnumerable<Product>>> SearchProduct(string productName)
+        {
+            if (string.IsNullOrEmpty(productName))
+            {
+                return BadRequest("Product name is required.");
+            }
+
+            var products = await _db.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                    .ThenInclude(pi => pi.image)
+                .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName))
+                .Select(p => new Product
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    NameAn = p.NameAn,
+                    Description = p.Description,
+                    DescriptionAn = p.DescriptionAn,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    NbrOfSales = p.NbrOfSales,
+                    IsAvailable = p.IsAvailable,
+                    CategoryId = p.CategoryId,
+                    Category = new Category
+                    {
+                        Id = p.Category.Id,
+                        Name = p.Category.Name,
+                        NameAn = p.Category.NameAn
+                    },
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    ProductImages = p.ProductImages.Select(pi => new ProductImages
+                    {
+                        Id = pi.Id,
+                        image = pi.image
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            if (products.Count == 0)
+            {
+                return NotFound("Product not found.");
+            }
+
+            return Ok(products);
+        }
+
 
     }
 }
