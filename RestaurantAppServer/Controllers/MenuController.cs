@@ -27,43 +27,88 @@ namespace RestaurantAppServer.Controllers
 
         [HttpGet]
         [Route("GetItems")]
-        public async Task<ActionResult<IEnumerable<Product>>> GetItems()
+        public async Task<ActionResult<IEnumerable<Product>>> GetItems(string categoryName)
         {
-            var productsWithFirstImage = await _db.Products
-                .Include(p => p.Category)
-                .Include(p => p.ProductImages)
-                    .ThenInclude(pi => pi.image)
-                .Select(p => new Product
+            if (categoryName.ToLower() == "all")
+            {
+                var allProducts = await _db.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        NameAn = p.NameAn,
+                        Description = p.Description,
+                        DescriptionAn = p.DescriptionAn,
+                        Price = p.Price,
+                        Discount = p.Discount,
+                        NbrOfSales = p.NbrOfSales,
+                        IsAvailable = p.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            image = pi.image
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(allProducts);
+            }
+            else
+            {
+                var categoryExists = await _db.Categories.AnyAsync(c => c.NameAn == categoryName);
+                if (!categoryExists)
                 {
-                    Id = p.Id,
-                    Name = p.Name,
-                    NameAn = p.NameAn,
-                    Description = p.Description,
-                    DescriptionAn = p.DescriptionAn,
-                    Price = p.Price,
-                    Discount = p.Discount,
-                    NbrOfSales = p.NbrOfSales,
-                    IsAvailable = p.IsAvailable,
-                    CategoryId = p.CategoryId,
-                    Category = new Category 
-                    {
-                        Id = p.Category.Id,
-                        Name = p.Category.Name,
-                        NameAn = p.Category.NameAn
-                    },
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt,
-                    ProductImages = p.ProductImages.Select(pi => new ProductImages
-                    {
-                        Id = pi.Id,
-                        image = pi.image 
-                    }).ToList()
-                })
-                .ToListAsync();
+                    return NotFound("Category not found.");
+                }
 
-            return Ok(productsWithFirstImage);
+                var productsByCategory = await _db.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .Where(p => p.Category.NameAn == categoryName)
+                    .Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        NameAn = p.NameAn,
+                        Description = p.Description,
+                        DescriptionAn = p.DescriptionAn,
+                        Price = p.Price,
+                        Discount = p.Discount,
+                        NbrOfSales = p.NbrOfSales,
+                        IsAvailable = p.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            image = pi.image
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(productsByCategory);
+            }
         }
-
 
 
         [HttpPost]

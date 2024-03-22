@@ -69,13 +69,12 @@ namespace RestaurantAppServer.Controllers
 
 
 
-        [HttpDelete("{userId}/{productId}")]
-        public async Task<IActionResult> DeleteFromFavorites(int userId, int productId)
+        [HttpDelete("{favoriteId}")]
+        public async Task<IActionResult> DeleteFavorite(int favoriteId)
         {
             try
             {
-                var favorite = await _db.Favorites
-                    .FirstOrDefaultAsync(f => f.UserId == userId && f.ProductId == productId);
+                var favorite = await _db.Favorites.FindAsync(favoriteId);
 
                 if (favorite == null)
                 {
@@ -85,7 +84,7 @@ namespace RestaurantAppServer.Controllers
                 _db.Favorites.Remove(favorite);
                 await _db.SaveChangesAsync();
 
-                return Ok(new { status = true, message = "Product deleted from favorites successfully" });
+                return Ok(new { status = true, message = "Favorite deleted successfully" });
             }
             catch (Exception err)
             {
@@ -93,7 +92,8 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
-        [HttpDelete("{userId}")]
+
+        [HttpDelete("user/{userId}")]
         public async Task<IActionResult> DeleteAllProductsFromFavorites(int userId)
         {
             try
