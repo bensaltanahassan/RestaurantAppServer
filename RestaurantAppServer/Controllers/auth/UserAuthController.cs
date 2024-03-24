@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
@@ -11,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
 namespace RestaurantAppServer.Controllers.auth
 {
@@ -43,24 +43,54 @@ namespace RestaurantAppServer.Controllers.auth
                 Address = userObj.Adress,
                 IsVerified = false
             };
-            var result = await _db.Users.AddAsync(user);
-            if(result.State != EntityState.Added)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error" });
-            }
-            await _db.SaveChangesAsync();
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
-            var token = GetToken(claims);
+            var jwtToken = GetToken(claims);
+            var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+            user.EmailVerificationToken = token;
+
+            var result = await _db.Users.AddAsync(user);
+
+            if(result.State != EntityState.Added)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error" });
+            }
+            await _db.SaveChangesAsync();
+            
             var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token,email=user.Email }, Request.Scheme);
             var message = new Message(new string[] { user.Email }, "Email Confirmation", $"<h1>Welcome to Restaurant App</h1><p>Please confirm your email by <a href='{confirmationLink}'>clicking here</a></p>");
             _emailService.SendEmail(message);
             return StatusCode(StatusCodes.Status201Created, new Response { Status = "Success", Message = $"User created and email sent to {user.Email} successfully!" });
 
+        }
+        [HttpGet("confirmEmail")]
+        public async Task<IActionResult> ConfirmEmail(string token, string email)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+            }
+            else
+            {   
+                if (user.EmailVerificationToken == token)
+                {
+                    user.IsVerified = true;
+                    user.EmailVerificationToken = null;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    _db.Users.Update(user);
+                    await _db.SaveChangesAsync();
+                    return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Email confirmed successfully" });
+                }
+                else
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Email failed to be confirmed! " });
+                }
+            }
         }
         [HttpGet]
         public async Task<IActionResult> TestEmail()

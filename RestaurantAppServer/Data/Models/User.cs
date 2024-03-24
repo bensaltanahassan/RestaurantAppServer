@@ -13,6 +13,7 @@ namespace RestaurantAppServer.Data.Models
         public string Address { get; set; }
         public string Password { get; set; }
         public bool IsVerified { get; set; }
+        public string EmailVerificationToken { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
