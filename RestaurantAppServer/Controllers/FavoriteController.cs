@@ -13,8 +13,8 @@ namespace RestaurantAppServer.Controllers
     {
         private readonly AppDbContext _db;
         public FavoriteController(AppDbContext db)
-        { 
-            _db = db; 
+        {
+            _db = db;
         }
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetAllProductsInFavorites(int userId)
@@ -30,38 +30,39 @@ namespace RestaurantAppServer.Controllers
                             .ThenInclude(pi => pi.image)
                     .Select(f => new
                     {
-                        Id = f.Id,
-                        ProductId=f.ProductId,
-                        Product = new Product
+                        f.Id,
+                        f.ProductId,
+                        Product = new
                         {
-                            Id = f.product.Id,
-                            Name = f.product.Name,
-                            NameAn = f.product.NameAn,
-                            Description = f.product.Description,
-                            DescriptionAn = f.product.DescriptionAn,
-                            Price = f.product.Price,
-                            Discount = f.product.Discount,
-                            NbrOfSales = f.product.NbrOfSales,
-                            IsAvailable = f.product.IsAvailable,
-                            CategoryId = f.product.CategoryId,
-                            Category = new Category
+                            f.product.Id,
+                            f.product.Name,
+                            f.product.NameAn,
+                            f.product.Description,
+                            f.product.DescriptionAn,
+                            f.product.Price,
+                            f.product.Discount,
+                            f.product.NbrOfSales,
+                            f.product.IsAvailable,
+                            f.product.CategoryId,
+                            Category = new
                             {
-                                Id = f.product.Category.Id,
-                                Name = f.product.Category.Name,
-                                NameAn = f.product.Category.NameAn
+                                f.product.Category.Id,
+                                f.product.Category.Name,
+                                f.product.Category.NameAn
                             },
-                            CreatedAt = f.product.CreatedAt,
-                            UpdatedAt = f.product.UpdatedAt,
-                            ProductImages = f.product.ProductImages.Select(pi => new ProductImages
+                            f.product.CreatedAt,
+                            f.product.UpdatedAt,
+                            ProductImages = f.product.ProductImages.Select(pi => new
                             {
-                                Id = pi.Id,
-                                image = pi.image
+                                pi.Id,
+                                pi.image,
+                                pi.isMain
                             }).ToList()
                         }
                     })
                     .ToListAsync();
 
-                return Ok(favorites);
+                return Ok(new { status = true, favorites });
             }
             catch (Exception err)
             {
@@ -100,7 +101,7 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-               
+
                 var favoritesToDelete = await _db.Favorites
                     .Where(f => f.UserId == userId)
                     .ToListAsync();
@@ -110,7 +111,7 @@ namespace RestaurantAppServer.Controllers
                     return BadRequest(new { status = false, message = "Favorites not found for the user" });
                 }
 
-                
+
                 _db.Favorites.RemoveRange(favoritesToDelete);
                 await _db.SaveChangesAsync();
 
