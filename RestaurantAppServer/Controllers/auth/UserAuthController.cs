@@ -10,8 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Newtonsoft.Json.Linq;
 using CloudinaryDotNet.Actions;
+using Microsoft.AspNetCore.Authorization;
+using System.ComponentModel.DataAnnotations;
 
 namespace RestaurantAppServer.Controllers.auth
 {
@@ -127,6 +128,51 @@ namespace RestaurantAppServer.Controllers.auth
                 });
             }
             return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
+        }
+
+        [HttpPost("forgotPassword")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([Required] string Email)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == Email);
+            if (user != null)
+            {
+                var confirmationCode = Guid.NewGuid().ToString();
+                user.ResetCode = confirmationCode;
+                user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(10);
+                _db.Users.Update(user);
+                await _db.SaveChangesAsync();
+                Message message = new Message(new string[] { user.Email! }, "Confirmation code email", $"Hi , {user.FullName} this is your confirmation code for reseting your password : '{confirmationCode}'");
+
+                _emailService.SendEmail(message);
+                return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = $"Reset password code sent successfully to {user.Email}" });
+            }
+
+            return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+
+        }
+        [HttpPost("resetPassword")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPassword resetPassword)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email );
+            if (user == null)
+            {
+
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+            }
+            if(user.ResetCode != resetPassword.ResetCode || user.ResetCodeExpiry < DateTime.UtcNow)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Reset code is invalid or expired!" });
+                
+            }
+            user.Password = BCrypt.Net.BCrypt.HashPassword(resetPassword.Password);
+            user.ResetCode = null;
+            user.ResetCodeExpiry = null;
+            _db.Users.Update(user);
+            await _db.SaveChangesAsync();
+
+            return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Password has been reset !" });
         }
 
         private JwtSecurityToken GetToken(List<Claim> claims)

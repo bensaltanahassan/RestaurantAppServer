@@ -14,6 +14,8 @@ namespace RestaurantAppServer.Data.Models
         public string Password { get; set; }
         public bool IsVerified { get; set; }
         public string EmailVerificationToken { get; set; }
+        public string ResetCode { get; set; }
+        public DateTime? ResetCodeExpiry { get; set; } = null;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
