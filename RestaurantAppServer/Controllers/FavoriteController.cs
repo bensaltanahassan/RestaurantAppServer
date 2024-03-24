@@ -16,7 +16,6 @@ namespace RestaurantAppServer.Controllers
         { 
             _db = db; 
         }
-
         [HttpGet("{userId}")]
         public async Task<IActionResult> GetAllProductsInFavorites(int userId)
         {
@@ -31,6 +30,8 @@ namespace RestaurantAppServer.Controllers
                             .ThenInclude(pi => pi.image)
                     .Select(f => new
                     {
+                        Id = f.Id,
+                        ProductId=f.ProductId,
                         Product = new Product
                         {
                             Id = f.product.Id,
@@ -60,7 +61,7 @@ namespace RestaurantAppServer.Controllers
                     })
                     .ToListAsync();
 
-                return Ok(new { status = true, products = favorites.Select(f => f.Product).ToList() });
+                return Ok(favorites);
             }
             catch (Exception err)
             {
