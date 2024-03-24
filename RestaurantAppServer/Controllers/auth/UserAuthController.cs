@@ -11,6 +11,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using CloudinaryDotNet.Actions;
 
 namespace RestaurantAppServer.Controllers.auth
 {
@@ -31,7 +32,7 @@ namespace RestaurantAppServer.Controllers.auth
         public async Task<IActionResult> Register([FromBody] RegisterUser userObj)
         {
             var userExists = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
-            if (userExists != null) { 
+            if (userExists != null) {
                 return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "User already exists!" });
             }
             User user = new()
@@ -55,13 +56,13 @@ namespace RestaurantAppServer.Controllers.auth
 
             var result = await _db.Users.AddAsync(user);
 
-            if(result.State != EntityState.Added)
+            if (result.State != EntityState.Added)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error" });
             }
             await _db.SaveChangesAsync();
-            
-            var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token,email=user.Email }, Request.Scheme);
+
+            var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token, email = user.Email }, Request.Scheme);
             var message = new Message(new string[] { user.Email }, "Email Confirmation", $"<h1>Welcome to Restaurant App</h1><p>Please confirm your email by <a href='{confirmationLink}'>clicking here</a></p>");
             _emailService.SendEmail(message);
             return StatusCode(StatusCodes.Status201Created, new Response { Status = "Success", Message = $"User created and email sent to {user.Email} successfully!" });
@@ -76,7 +77,7 @@ namespace RestaurantAppServer.Controllers.auth
                 return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
             }
             else
-            {   
+            {
                 if (user.EmailVerificationToken == token)
                 {
                     user.IsVerified = true;
@@ -92,14 +93,42 @@ namespace RestaurantAppServer.Controllers.auth
                 }
             }
         }
-        [HttpGet]
-        public async Task<IActionResult> TestEmail()
-        {
-            var message = new Message(new string[] { "a.hasna9422@uca.ac.ma" }, "Test", "<h1>Testing ....</h1>");
-            _emailService.SendEmail(message);
-            return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Email sent successfully" });
 
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginUser userObj)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
+            if (user == null)
+            {
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+            }
+            if (BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
+            {
+                var claims = new List<Claim>
+                {
+                new Claim(ClaimTypes.Name, user.FullName),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, "user"),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+                };
+                var jwtToken = GetToken(claims);
+                var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                return Ok(new
+                {
+                    token = token,
+                    expiration = jwtToken.ValidTo,
+                    user = new
+                    {
+                        user.FullName,
+                        user.Email,
+                        user.Phone,
+                        user.Address
+                    }
+                });
+            }
+            return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
         }
+
         private JwtSecurityToken GetToken(List<Claim> claims)
         {
             var authSigninKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:SecretKey"]));
