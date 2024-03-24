@@ -32,6 +32,7 @@ namespace RestaurantAppServer.Controllers
                     {
                         f.Id,
                         f.ProductId,
+                        f.CreatedAt,
                         Product = new
                         {
                             f.product.Id,
