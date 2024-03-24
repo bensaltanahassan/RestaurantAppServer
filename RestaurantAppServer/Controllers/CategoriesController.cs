@@ -10,13 +10,13 @@ namespace RestaurantAppServer.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController : ControllerBase
+    public class CategoriesController : ControllerBase
     {
 
         private readonly AppDbContext _db;
         private readonly IImageService _imageService;
 
-        public CategoryController(AppDbContext db, IImageService imageService)
+        public CategoriesController(AppDbContext db, IImageService imageService)
         {
             _db = db;
             _imageService = imageService;

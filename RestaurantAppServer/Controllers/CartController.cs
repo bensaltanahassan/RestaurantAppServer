@@ -15,15 +15,51 @@ namespace RestaurantAppServer.Controllers
         public CartController(AppDbContext db) => _db = db;
 
 
-        [HttpGet()]
-        public async Task<IActionResult> GetAllProductFromCart([FromBody] CartModel cm)
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetAllProductFromCart(int userId)
         {
             try
             {
-                int userId = cm.userId;
                 var cart = await _db.OrderItems
                     .Where(oi => oi.UserId == userId && oi.order == null)
                     .Include(oi => oi.product)
+                        .ThenInclude(p => p.ProductImages)
+                            .ThenInclude(pi => pi.image)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.Quantity,
+                        Product = new
+                        {
+                            r.product.Id,
+                            r.product.Name,
+                            r.product.NameAn,
+                            r.product.Description,
+                            r.product.DescriptionAn,
+                            r.product.Price,
+                            r.product.Discount,
+                            r.product.NbrOfSales,
+                            r.product.IsAvailable,
+                            r.product.CategoryId,
+                            Category = new
+                            {
+                                r.product.Category.Id,
+                                r.product.Category.Name,
+                                r.product.Category.NameAn
+                            },
+                            r.product.CreatedAt,
+                            r.product.UpdatedAt,
+                            ProductImages = r.product.ProductImages.Select(pi => new
+                            {
+                                pi.Id,
+                                pi.image,
+                                pi.isMain
+                            }).ToList()
+                        },
+                        r.CreatedAt,
+                        r.UpdatedAt,
+
+                    })
                     .ToListAsync();
                 return Ok(new { status = true, cart });
             }
