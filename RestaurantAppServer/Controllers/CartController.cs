@@ -28,6 +28,7 @@ namespace RestaurantAppServer.Controllers
                     .Select(r => new
                     {
                         r.Id,
+                        r.Quantity,
                         Product = new
                         {
                             r.product.Id,
