@@ -2,7 +2,7 @@
 
 namespace RestaurantAppServer.Models.auth.user
 {
-    public class ResetPassword
+    public class ResetPasswordUser
     {
         [Required]
         public string Password { get; set; }

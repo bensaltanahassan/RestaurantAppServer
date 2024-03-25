@@ -13,6 +13,7 @@ using System.Text;
 using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
+using RestaurantAppServer.Utils;
 
 namespace RestaurantAppServer.Controllers.auth
 {
@@ -23,11 +24,13 @@ namespace RestaurantAppServer.Controllers.auth
         private readonly AppDbContext _db;
         private readonly IEmailService _emailService;
         private readonly IConfiguration _config;
-        public UserAuthController(AppDbContext db, IEmailService emailService, IConfiguration config)
+        private readonly JwtTokenService _jwtTokenService;
+        public UserAuthController(AppDbContext db, IEmailService emailService, IConfiguration config, JwtTokenService jwtTokenService)
         {
             _db = db;
             _emailService = emailService;
             _config = config;
+            _jwtTokenService = jwtTokenService;
         }
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUser userObj)
@@ -112,7 +115,7 @@ namespace RestaurantAppServer.Controllers.auth
                 new Claim(ClaimTypes.Role, "user"),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
                 };
-                var jwtToken = GetToken(claims);
+                var jwtToken = _jwtTokenService.GetToken(claims);
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
                 return Ok(new
                 {
@@ -153,7 +156,7 @@ namespace RestaurantAppServer.Controllers.auth
         }
         [HttpPost("resetPassword")]
         [AllowAnonymous]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPassword resetPassword)
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordUser resetPassword)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email );
             if (user == null)

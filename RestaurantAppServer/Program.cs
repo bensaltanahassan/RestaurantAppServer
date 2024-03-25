@@ -66,6 +66,8 @@ builder.Services.AddSwaggerGen(c =>
          }
     });
 });
+//Add token service config 
+builder.Services.AddSingleton<JwtTokenService>();
 
 //add email config
 var emailConfig = builder.Configuration
