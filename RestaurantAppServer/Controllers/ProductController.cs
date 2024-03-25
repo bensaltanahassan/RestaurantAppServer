@@ -1,0 +1,315 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RestaurantAppServer.Data;
+using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using RestaurantAppServer.Interfaces;
+using RestaurantAppServer.Services;
+
+
+namespace RestaurantAppServer.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ProductController : ControllerBase
+    {
+        private readonly AppDbContext _db;
+        private readonly IImageService _imageService;
+
+        public ProductController(AppDbContext db, IImageService imageService)
+        {
+            _db = db;
+            _imageService = imageService;
+        }
+
+        [HttpGet]
+        [Route("GetItems")]
+        public async Task<ActionResult<IEnumerable<Product>>> GetItems(string categoryName)
+        {
+            if (categoryName.ToLower() == "all")
+            {
+                var allProducts = await _db.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        NameAn = p.NameAn,
+                        Description = p.Description,
+                        DescriptionAn = p.DescriptionAn,
+                        Price = p.Price,
+                        Discount = p.Discount,
+                        NbrOfSales = p.NbrOfSales,
+                        IsAvailable = p.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            image = pi.image
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(allProducts);
+            }
+            else
+            {
+                var categoryExists = await _db.Categories.AnyAsync(c => c.NameAn == categoryName);
+                if (!categoryExists)
+                {
+                    return NotFound("Category not found.");
+                }
+
+                var productsByCategory = await _db.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .Where(p => p.Category.NameAn == categoryName)
+                    .Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        NameAn = p.NameAn,
+                        Description = p.Description,
+                        DescriptionAn = p.DescriptionAn,
+                        Price = p.Price,
+                        Discount = p.Discount,
+                        NbrOfSales = p.NbrOfSales,
+                        IsAvailable = p.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            image = pi.image
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Ok(productsByCategory);
+            }
+        }
+
+
+        [HttpPost]
+        [Route("CreateItems")]
+        public async Task<IActionResult> CreateProduct([FromForm] ProductModel pm, IFormFile file)
+        {
+            try
+            {
+                var result = await _imageService.AddImageAsync(file);
+                if (result.Error != null)
+                    return BadRequest(new { status = false, message = "Image upload failed" });
+
+                ImageModel img = new()
+                {
+                    PublicId = result.PublicId,
+                    Url = result.SecureUrl.AbsoluteUri
+                };
+
+                Image image = new()
+                {
+                    PublicId = img.PublicId,
+                    Url = img.Url
+                };
+
+                await _db.Images.AddAsync(image);
+                await _db.SaveChangesAsync();
+
+                Product product = new()
+                {
+                    Name = pm.Name,
+                    NameAn = pm.NameAn,
+                    Description = pm.Description,
+                    DescriptionAn = pm.DescriptionAn,
+                    Price = pm.Price,
+                    Discount = pm.Discount,
+                    NbrOfSales = pm.NbrOfSales,
+                    IsAvailable = pm.IsAvailable,
+                    CategoryId = pm.CategoryId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    ProductImages = new List<ProductImages>
+                    {
+                        new ProductImages
+                        {
+                            ImageId = image.Id
+                        }
+                    }
+                };
+
+                await _db.Products.AddAsync(product);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Product created successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+
+
+        [HttpPut]
+        [Route("UpdateProduct/{productId}")]
+        public async Task<IActionResult> UpdateProduct(int productId, [FromForm] ProductModel pm, IFormFile file)
+        {
+            try
+            {
+                var product = await _db.Products.FindAsync(productId);
+                if (product == null)
+                {
+                    return NotFound(new { status = false, message = "Product not found" });
+                }
+
+                if (file != null)
+                {
+                    var result = await _imageService.AddImageAsync(file);
+                    if (result.Error != null)
+                    {
+                        return BadRequest(new { status = false, message = "Image upload failed" });
+                    }
+
+                    ImageModel img = new()
+                    {
+                        PublicId = result.PublicId,
+                        Url = result.SecureUrl.AbsoluteUri
+                    };
+
+                    Image image = new()
+                    {
+                        PublicId = img.PublicId,
+                        Url = img.Url
+                    };
+
+                    await _db.Images.AddAsync(image);
+                    await _db.SaveChangesAsync();
+
+                    product.ProductImages = new List<ProductImages>
+                    {
+                        new ProductImages
+                        {
+                            ImageId = image.Id
+                        }
+                    };
+                }
+
+                product.Name = pm.Name;
+                product.NameAn = pm.NameAn;
+                product.Description = pm.Description;
+                product.DescriptionAn = pm.DescriptionAn;
+                product.Price = pm.Price;
+                product.Discount = pm.Discount;
+                product.NbrOfSales = pm.NbrOfSales;
+                product.IsAvailable = pm.IsAvailable;
+                product.CategoryId = pm.CategoryId;
+                product.UpdatedAt = DateTime.UtcNow;
+
+                _db.Products.Update(product);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Product updated successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+
+
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            try
+            {
+                var product = await _db.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return BadRequest(new { status = false, message = "Product not found" });
+                }
+
+                _db.Products.Remove(product);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Product deleted successfully" });
+            }
+            catch
+            {
+                return BadRequest(new { status = false, message = "Internal Server Error" });
+            }
+        }
+
+        [HttpGet]
+        [Route("SearchProduct")]
+        public async Task<ActionResult<IEnumerable<Product>>> SearchProduct(string productName)
+        {
+            if (string.IsNullOrEmpty(productName))
+            {
+                return BadRequest("Product name is required.");
+            }
+
+            var products = await _db.Products
+                .Include(p => p.Category)
+                .Include(p => p.ProductImages)
+                    .ThenInclude(pi => pi.image)
+                .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName))
+                .Select(p => new Product
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    NameAn = p.NameAn,
+                    Description = p.Description,
+                    DescriptionAn = p.DescriptionAn,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    NbrOfSales = p.NbrOfSales,
+                    IsAvailable = p.IsAvailable,
+                    CategoryId = p.CategoryId,
+                    Category = new Category
+                    {
+                        Id = p.Category.Id,
+                        Name = p.Category.Name,
+                        NameAn = p.Category.NameAn
+                    },
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    ProductImages = p.ProductImages.Select(pi => new ProductImages
+                    {
+                        Id = pi.Id,
+                        image = pi.image
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            if (products.Count == 0)
+            {
+                return NotFound("Product not found.");
+            }
+
+            return Ok(products);
+        }
+
+
+    }
+}

@@ -15,15 +15,51 @@ namespace RestaurantAppServer.Controllers
         public CartController(AppDbContext db) => _db = db;
 
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetAllProductFromCart(int id)
+        [HttpGet("{userId}")]
+        public async Task<IActionResult> GetAllProductFromCart(int userId)
         {
             try
             {
-                int userId = id;
                 var cart = await _db.OrderItems
                     .Where(oi => oi.UserId == userId && oi.order == null)
                     .Include(oi => oi.product)
+                        .ThenInclude(p => p.ProductImages)
+                            .ThenInclude(pi => pi.image)
+                    .Select(r => new
+                    {
+                        r.Id,
+                        r.Quantity,
+                        Product = new
+                        {
+                            r.product.Id,
+                            r.product.Name,
+                            r.product.NameAn,
+                            r.product.Description,
+                            r.product.DescriptionAn,
+                            r.product.Price,
+                            r.product.Discount,
+                            r.product.NbrOfSales,
+                            r.product.IsAvailable,
+                            r.product.CategoryId,
+                            Category = new
+                            {
+                                r.product.Category.Id,
+                                r.product.Category.Name,
+                                r.product.Category.NameAn
+                            },
+                            r.product.CreatedAt,
+                            r.product.UpdatedAt,
+                            ProductImages = r.product.ProductImages.Select(pi => new
+                            {
+                                pi.Id,
+                                pi.image,
+                                pi.isMain
+                            }).ToList()
+                        },
+                        r.CreatedAt,
+                        r.UpdatedAt,
+
+                    })
                     .ToListAsync();
                 return Ok(new { status = true, cart });
             }
@@ -42,7 +78,7 @@ namespace RestaurantAppServer.Controllers
                 var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == orderItem.ProductId);
                 if (product == null)
                 {
-                    return BadRequest(new { status = false, message = "Product not found" });
+                    return NotFound(new { status = false, message = "Product not found" });
                 }
                 int userId = orderItem.UserId;
                 var cart = await _db.OrderItems
@@ -66,7 +102,7 @@ namespace RestaurantAppServer.Controllers
                     _db.OrderItems.Add(newOi);
                 }
                 await _db.SaveChangesAsync();
-                return Ok(new { status = true, message = "Add with success" });
+                return StatusCode(201, new { status = true, message = "Add with success" });
             }
             catch (Exception err)
             {
@@ -81,12 +117,12 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var oi = await _db.Orders.FindAsync(id);
+                var oi = await _db.OrderItems.FindAsync(id);
                 if (oi == null)
                 {
-                    return BadRequest(new { status = false, message = "Cart Item not found" });
+                    return NotFound(new { status = false, message = $"Cart Item not found with id {id}" });
                 }
-                _db.Orders.Remove(oi);
+                _db.OrderItems.Remove(oi);
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Deleted successfuly" });
             }
@@ -97,10 +133,11 @@ namespace RestaurantAppServer.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> IncDecQuantity(int id, [FromBody] int quantity)
+        public async Task<IActionResult> IncDecQuantity(int id, [FromBody] OrderItemModel oim)
         {
             try
             {
+                int quantity = oim.Quantity;
                 int oiId = id;
                 var oi = await _db.OrderItems.FindAsync(id);
                 if (oi == null)
@@ -112,8 +149,11 @@ namespace RestaurantAppServer.Controllers
                 {
                     _db.OrderItems.Remove(oi);
                 }
-                // if the cart.quantity>1 the he could add or remove 1
-                oi.Quantity += quantity;
+                else
+                {
+                    // if the cart.quantity>1 the he could add or remove 1
+                    oi.Quantity += quantity;
+                }
                 await _db.SaveChangesAsync();
 
                 return Ok(new { status = false, message = "Success" });
