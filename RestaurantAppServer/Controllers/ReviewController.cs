@@ -21,7 +21,11 @@ namespace RestaurantAppServer.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Review>>> GetReviews()
         {
-            var reviews = await _db.Reviews.ToListAsync();
+            var reviews = await _db.Reviews
+                .Include(r => r.user) 
+                .Include(r => r.user.image) 
+                .ToListAsync();
+
             return Ok(reviews);
         }
 

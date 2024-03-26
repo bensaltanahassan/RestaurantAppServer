@@ -26,6 +26,7 @@ namespace RestaurantAppServer.Services
             if(file.Length > 0)
             {
                 using var stream = file.OpenReadStream();
+                stream.Position = 0;
                 var uploadParams = new ImageUploadParams
                 {
                     File = new FileDescription(file.FileName, stream),
