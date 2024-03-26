@@ -36,7 +36,8 @@ namespace RestaurantAppServer.Controllers.auth
         public async Task<IActionResult> Register([FromBody] RegisterUser userObj)
         {
             var userExists = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
-            if (userExists != null) {
+            if (userExists != null)
+            {
                 return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "User already exists!" });
             }
             User user = new()
@@ -104,7 +105,7 @@ namespace RestaurantAppServer.Controllers.auth
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
             if (user == null)
             {
-                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+                return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
             }
             if (BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
             {
@@ -158,16 +159,15 @@ namespace RestaurantAppServer.Controllers.auth
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordUser resetPassword)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email );
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
             if (user == null)
             {
-
-                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+                return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
             }
-            if(user.ResetCode != resetPassword.ResetCode || user.ResetCodeExpiry < DateTime.UtcNow)
+            if (user.ResetCode != resetPassword.ResetCode || user.ResetCodeExpiry < DateTime.UtcNow)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Reset code is invalid or expired!" });
-                
+
             }
             user.Password = BCrypt.Net.BCrypt.HashPassword(resetPassword.Password);
             user.ResetCode = null;
@@ -175,7 +175,7 @@ namespace RestaurantAppServer.Controllers.auth
             _db.Users.Update(user);
             await _db.SaveChangesAsync();
 
-            return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Password has been reset !" });
+            return Ok(new Response { Status = "Success", Message = "Password has been reset !" });
         }
 
         private JwtSecurityToken GetToken(List<Claim> claims)

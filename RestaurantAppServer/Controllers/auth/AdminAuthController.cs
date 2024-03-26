@@ -19,7 +19,7 @@ namespace RestaurantAppServer.Controllers.auth
         private readonly AppDbContext _db;
         private readonly IConfiguration _config;
         private readonly JwtTokenService _jwtTokenService;
-        public AdminAuthController(AppDbContext db, IConfiguration config,JwtTokenService jwtTokenService)
+        public AdminAuthController(AppDbContext db, IConfiguration config, JwtTokenService jwtTokenService)
         {
             _db = db;
             _config = config;
@@ -32,9 +32,9 @@ namespace RestaurantAppServer.Controllers.auth
             var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == adminObj.Email);
             if (admin == null)
             {
-                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+                return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
             }
-            if (adminObj.Password==admin.Password)
+            if (adminObj.Password == admin.Password)
             {
                 var claims = new List<Claim>
                 {
@@ -63,7 +63,7 @@ namespace RestaurantAppServer.Controllers.auth
             var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
             if (admin == null)
             {
-                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "Admin doesn't exist! " });
+                return NotFound(new Response { Status = "Error", Message = "Admin doesn't exist! " });
             }
             admin.Password = resetPassword.Password;
             _db.Admins.Update(admin);
