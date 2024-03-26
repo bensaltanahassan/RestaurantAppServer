@@ -1,0 +1,125 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using RestaurantAppServer.Data;
+
+namespace RestaurantAppServer.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class OrdersController : ControllerBase
+    {
+        private readonly AppDbContext _db;
+        public OrdersController(AppDbContext db)
+        {
+            _db = db;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllOrders([FromQuery] int userId)
+        {
+            try
+            {
+                var orders = _db.Orders
+                    .Where(o => o.UserId == userId)
+                    .Select(o => new
+                    {
+                        o.Id,
+                        o.TotalPrice,
+                        o.Adress,
+                        o.PhoneNumber,
+                        o.PaymentMethod,
+                        o.PaymentStatus,
+                        o.OrderStatus,
+                        o.CreatedAt,
+                        o.UpdatedAt,
+                    }).ToList();
+
+
+                return Ok(new { status = true, orders });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err.Message });
+            }
+        }
+
+
+        [HttpGet("{orderId}")]
+        public async Task<IActionResult> GetOrderById(int orderId)
+        {
+            try
+            {
+                var order = await _db.Orders
+                    .Where(o => o.Id == orderId)
+                    .Include(o => o.orderItems)
+                        .ThenInclude(oi => oi.product)
+                            .ThenInclude(p => p.ProductImages)
+                                .ThenInclude(pi => pi.image)
+                    .Select(o => new
+                    {
+                        o.Id,
+                        o.TotalPrice,
+                        o.Adress,
+                        o.PhoneNumber,
+                        o.PaymentMethod,
+                        o.PaymentStatus,
+                        o.OrderStatus,
+                        o.CreatedAt,
+                        o.UpdatedAt,
+                        OrderItems = o.orderItems.Select(oi => new
+                        {
+                            oi.Id,
+                            oi.Quantity,
+                            Product = new
+                            {
+                                oi.product.Id,
+                                oi.product.Name,
+                                oi.product.NameAn,
+                                oi.product.Description,
+                                oi.product.DescriptionAn,
+                                oi.product.Price,
+                                oi.product.Discount,
+                                oi.product.NbrOfSales,
+                                oi.product.IsAvailable,
+                                oi.product.CategoryId,
+                                Category = new
+                                {
+                                    oi.product.Category.Id,
+                                    oi.product.Category.Name,
+                                    oi.product.Category.NameAn
+                                },
+                                oi.product.CreatedAt,
+                                oi.product.UpdatedAt,
+                                ProductImages = oi.product.ProductImages.Select(pi => new
+                                {
+                                    pi.Id,
+                                    pi.image,
+                                    pi.isMain
+                                }).ToList()
+                            },
+                            oi.CreatedAt,
+                            oi.UpdatedAt
+                        }).ToList()
+                    }).FirstOrDefaultAsync();
+
+                if (order == null)
+                {
+                    return NotFound(new { status = false, message = "Order not found" });
+                }
+
+                return Ok(new { status = true, order });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err.Message });
+            }
+
+        }
+
+
+    }
+}

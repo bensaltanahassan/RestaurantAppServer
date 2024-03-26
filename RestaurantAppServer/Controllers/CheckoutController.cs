@@ -18,8 +18,10 @@ namespace RestaurantAppServer.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Checkout([FromBody] OrderModel order) {
-            try {
+        public async Task<IActionResult> Checkout([FromBody] OrderModel order)
+        {
+            try
+            {
                 Order newOrder = new()
                 {
                     Adress = order.Adress,
@@ -29,19 +31,22 @@ namespace RestaurantAppServer.Controllers
                     TotalPrice = order.TotalPrice,
                     PhoneNumber = order.PhoneNumber,
                     OrderStatus = order.OrderStatus,
+
                 };
                 await _db.Orders.AddAsync(newOrder);
+                await _db.SaveChangesAsync();
                 _db.OrderItems
                     .Where(oi => oi.OrderId == null && oi.UserId == order.UserId)
                     .ToList()
                     .ForEach(oi => oi.OrderId = newOrder.Id);
 
                 await _db.SaveChangesAsync();
-                return Ok(new {status=true,message="Chekout with success"});
+                return Ok(new { status = true, message = "Chekout with success" });
 
             }
-            catch {
-                return BadRequest(new { status = false, message = "Internal Server Error" });
+            catch (Exception err)
+            {
+                return BadRequest(new { status = false, message = "Internal Server Error", err.Message });
             }
         }
     }

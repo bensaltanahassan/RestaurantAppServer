@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Newtonsoft.Json;
 
 namespace RestaurantAppServer.Data.Models
 {
@@ -20,5 +21,9 @@ namespace RestaurantAppServer.Data.Models
         [ForeignKey(nameof(user))]
         public int UserId { get; set; }
         public User user { get; set; }
+
+
+        [JsonProperty("ProductImages")]
+        public List<OrderItem> orderItems { get; set; }
     }
 }
