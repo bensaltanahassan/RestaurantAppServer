@@ -19,39 +19,6 @@ namespace RestaurantAppServer.Controllers
             _db = db;
         }
 
-        [HttpGet("users/{userId}")]
-        public async Task<IActionResult> GetAllOrdersByUser([FromQuery] int userId, [FromQuery] int page = 1, [FromQuery] int limit = 30)
-        {
-            try
-            {
-                IQueryable<Order> query = _db.Orders.Where(o => o.UserId == userId);
-                int totalItems = await query.CountAsync();
-                int offset = (page - 1) * limit;
-                var orders = await query
-                    .Skip(offset)
-                    .Take(limit)
-                    .Select(o => new
-                    {
-                        o.Id,
-                        o.TotalPrice,
-                        o.Adress,
-                        o.PhoneNumber,
-                        o.PaymentMethod,
-                        o.PaymentStatus,
-                        o.OrderStatus,
-                        o.CreatedAt,
-                        o.UpdatedAt,
-                    }).ToListAsync();
-                return Ok(new { status = true, orders });
-            }
-            catch (Exception err)
-            {
-                return StatusCode(500, new { status = false, message = "Internal Server Error", err.Message });
-            }
-        }
-
-
-
         [HttpGet]
         public async Task<IActionResult> GetAllOrders([FromQuery] int page = 1, [FromQuery] int limit = 30)
         {
@@ -82,6 +49,8 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err.Message });
             }
         }
+
+
 
 
         [HttpGet("{orderId}")]
@@ -155,6 +124,47 @@ namespace RestaurantAppServer.Controllers
             }
 
         }
+
+
+        [HttpGet("users/{userId}")]
+        public async Task<IActionResult> GetAllOrdersByUser([FromRoute] int userId, [FromQuery] int page = 1, [FromQuery] int limit = 30)
+        {
+            try
+            {
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (user == null)
+                {
+                    return NotFound(new { status = false, message = "User not found" });
+                }
+                IQueryable<Order> query = _db.Orders.Where(o => o.UserId == userId);
+                int totalItems = await query.CountAsync();
+                int offset = (page - 1) * limit;
+                var orders = await query
+                    .Skip(offset)
+                    .Take(limit)
+                    .Select(o => new
+                    {
+                        o.Id,
+                        o.TotalPrice,
+                        o.Adress,
+                        o.PhoneNumber,
+                        o.PaymentMethod,
+                        o.PaymentStatus,
+                        o.OrderStatus,
+                        o.CreatedAt,
+                        o.UpdatedAt,
+                    }).ToListAsync();
+                return Ok(new { status = true, orders });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = err.Message });
+            }
+        }
+
+
+
+
 
 
     }
