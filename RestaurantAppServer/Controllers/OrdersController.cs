@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
+using RestaurantAppServer.Data.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -18,13 +19,17 @@ namespace RestaurantAppServer.Controllers
             _db = db;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAllOrders([FromQuery] int userId)
+        [HttpGet("users/{userId}")]
+        public async Task<IActionResult> GetAllOrdersByUser([FromQuery] int userId, [FromQuery] int page = 1, [FromQuery] int limit = 30)
         {
             try
             {
-                var orders = await _db.Orders
-                    .Where(o => o.UserId == userId)
+                IQueryable<Order> query = _db.Orders.Where(o => o.UserId == userId);
+                int totalItems = await query.CountAsync();
+                int offset = (page - 1) * limit;
+                var orders = await query
+                    .Skip(offset)
+                    .Take(limit)
                     .Select(o => new
                     {
                         o.Id,
@@ -37,8 +42,39 @@ namespace RestaurantAppServer.Controllers
                         o.CreatedAt,
                         o.UpdatedAt,
                     }).ToListAsync();
+                return Ok(new { status = true, orders });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err.Message });
+            }
+        }
 
 
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllOrders([FromQuery] int page = 1, [FromQuery] int limit = 30)
+        {
+            try
+            {
+                IQueryable<Order> query = _db.Orders;
+                int totalItems = await query.CountAsync();
+                int offset = (page - 1) * limit;
+                var orders = await query
+                    .Skip(offset)
+                    .Take(limit)
+                    .Select(o => new
+                    {
+                        o.Id,
+                        o.TotalPrice,
+                        o.Adress,
+                        o.PhoneNumber,
+                        o.PaymentMethod,
+                        o.PaymentStatus,
+                        o.OrderStatus,
+                        o.CreatedAt,
+                        o.UpdatedAt,
+                    }).ToListAsync();
                 return Ok(new { status = true, orders });
             }
             catch (Exception err)
