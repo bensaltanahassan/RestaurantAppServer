@@ -23,7 +23,7 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var orders = _db.Orders
+                var orders = await _db.Orders
                     .Where(o => o.UserId == userId)
                     .Select(o => new
                     {
@@ -36,7 +36,7 @@ namespace RestaurantAppServer.Controllers
                         o.OrderStatus,
                         o.CreatedAt,
                         o.UpdatedAt,
-                    }).ToList();
+                    }).ToListAsync();
 
 
                 return Ok(new { status = true, orders });
