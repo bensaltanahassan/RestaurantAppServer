@@ -121,10 +121,11 @@ namespace RestaurantAppServer.Controllers.auth
                 return Ok(new
                 {
                     status = "Success",
-                    token = token,
+                    token,
                     expiration = jwtToken.ValidTo,
                     user = new
                     {
+                        user.Id,
                         user.FullName,
                         user.Email,
                         user.Phone,
