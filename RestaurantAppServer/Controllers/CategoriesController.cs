@@ -9,7 +9,6 @@ using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
 {
-    [Authorize(Roles = "user")]
     [Route("api/[controller]")]
     [ApiController]
     public class CategoriesController : ControllerBase

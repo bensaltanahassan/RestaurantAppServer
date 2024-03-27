@@ -120,10 +120,12 @@ namespace RestaurantAppServer.Controllers.auth
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
                 return Ok(new
                 {
-                    token = token,
+                    status = "Success",
+                    token,
                     expiration = jwtToken.ValidTo,
                     user = new
                     {
+                        user.Id,
                         user.FullName,
                         user.Email,
                         user.Phone,
