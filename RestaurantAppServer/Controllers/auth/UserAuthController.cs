@@ -105,7 +105,7 @@ namespace RestaurantAppServer.Controllers.auth
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
             if (user == null)
             {
-                return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
+                return NotFound(new Response { Status = "Error", Message = "User doesn't exist!" });
             }
             if (BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
             {
@@ -131,7 +131,7 @@ namespace RestaurantAppServer.Controllers.auth
                     }
                 });
             }
-            return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
+            return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
         }
 
         [HttpPost("forgotPassword")]
