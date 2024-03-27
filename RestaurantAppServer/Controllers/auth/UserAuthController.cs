@@ -130,7 +130,9 @@ namespace RestaurantAppServer.Controllers.auth
                         user.FullName,
                         user.Email,
                         user.Phone,
-                        user.Address
+                        user.Address,
+                        user.ImageId,
+                        user.image
                     }
                 });
             }

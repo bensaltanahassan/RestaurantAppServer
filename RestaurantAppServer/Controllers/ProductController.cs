@@ -46,7 +46,8 @@ namespace RestaurantAppServer.Controllers
                 int totalItems = await query.CountAsync();
 
                 int offset = (page - 1) * limit;
-                var products = await query.Skip(offset).Take(limit).Select(p => new Product
+                var products = await query.Skip(offset).Take(limit)
+                .Select(p => new Product
                 {
                     Id = p.Id,
                     Name = p.Name,
@@ -69,8 +70,8 @@ namespace RestaurantAppServer.Controllers
                     ProductImages = p.ProductImages.Select(pi => new ProductImages
                     {
                         Id = pi.Id,
-                        ImageId = pi.ImageId, 
-                        image = new Image 
+                        ImageId = pi.ImageId,
+                        image = new Image
                         {
                             Id = pi.image.Id,
                             PublicId = pi.image.PublicId,

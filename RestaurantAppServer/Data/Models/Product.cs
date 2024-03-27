@@ -9,48 +9,48 @@ namespace RestaurantAppServer.Data.Models
     public class Product
     {
         [Key]
-        [JsonProperty("Id")]
+        [JsonProperty(nameof(Id))]
         public int Id { get; set; }
 
         [Required]
-        [JsonProperty("Name")]
+        [JsonProperty(nameof(Name))]
         public string Name { get; set; }
 
-        [JsonProperty("NameAn")]
+        [JsonProperty(nameof(NameAn))]
         public string NameAn { get; set; }
 
-        [JsonProperty("Description")]
+        [JsonProperty(nameof(Description))]
         public string Description { get; set; }
 
-        [JsonProperty("DescriptionAn")]
+        [JsonProperty(nameof(DescriptionAn))]
         public string DescriptionAn { get; set; }
 
-        [JsonProperty("Price")]
+        [JsonProperty(nameof(Price))]
         public double Price { get; set; }
 
-        [JsonProperty("Discount")]
+        [JsonProperty(nameof(Discount))]
         public int Discount { get; set; }
 
-        [JsonProperty("NbrOfSales")]
+        [JsonProperty(nameof(NbrOfSales))]
         public int NbrOfSales { get; set; }
 
-        [JsonProperty("IsAvailable")]
+        [JsonProperty(nameof(IsAvailable))]
         public bool IsAvailable { get; set; }
 
-        [JsonProperty("CreatedAt")]
+        [JsonProperty(nameof(CreatedAt))]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        [JsonProperty("UpdatedAt")]
+        [JsonProperty(nameof(UpdatedAt))]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         [ForeignKey(nameof(Category))]
-        [JsonProperty("CategoryId")]
+        [JsonProperty(nameof(CategoryId))]
         public int CategoryId { get; set; }
 
-        [JsonProperty("Category")]
+        [JsonProperty(nameof(Category))]
         public Category Category { get; set; }
 
-        [JsonProperty("ProductImages")]
+        [JsonProperty(nameof(ProductImages))]
         public List<ProductImages> ProductImages { get; set; }
 
         public Product()
