@@ -19,6 +19,7 @@ namespace RestaurantAppServer.Controllers
             _db = db;
         }
         [HttpGet]
+        [Route("mobile")]
         public async Task<IActionResult> GetHomeElement([FromQuery] int limitPerCategory = 10)
         {
             try
