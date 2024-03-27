@@ -102,7 +102,8 @@ namespace RestaurantAppServer.Controllers.auth
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUser userObj)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
+            var user = await _db.Users.Where(u => u.Email == userObj.Email)
+                            .Include(u => u.image).FirstOrDefaultAsync();
             if (user == null)
             {
                 return NotFound(new Response { Status = "Error", Message = "User doesn't exist!" });
