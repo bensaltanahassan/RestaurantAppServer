@@ -23,8 +23,7 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                //TODO change condition to isSuggested==true
-                var topProducts = await _db.Products.Take(5).OrderByDescending(p => p.NbrOfSales).ToListAsync();
+                var topProducts = await _db.Products.Take(5).OrderByDescending(p => p.Discount).ToListAsync();
                 var categories = await _db.Categories
                     .Include(c => c.image)
                     .Select(
