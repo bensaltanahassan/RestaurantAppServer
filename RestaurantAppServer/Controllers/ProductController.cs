@@ -29,7 +29,7 @@ namespace RestaurantAppServer.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] string categoryName = "all", [FromQuery] int page = 1, [FromQuery] int limit = 20)
+        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] int categoryId = 0, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
             try
             {
@@ -38,9 +38,9 @@ namespace RestaurantAppServer.Controllers
 
                 IQueryable<Product> query = _db.Products.Include(p => p.Category).Include(p => p.ProductImages);
 
-                if (categoryName.ToLower() != "all")
+                if (categoryId != 0)
                 {
-                    query = query.Where(p => p.Category.NameAn == categoryName);
+                    query = query.Where(p => p.CategoryId == categoryId);
                 }
 
                 int totalItems = await query.CountAsync();
@@ -87,9 +87,6 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
             }
         }
-
-
-
 
         [HttpPost]
         [Route("CreateItems")]
