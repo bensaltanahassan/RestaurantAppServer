@@ -58,7 +58,8 @@ namespace RestaurantAppServer.Controllers
         [HttpGet("getUserById")]
         public async Task<IActionResult> GetUserById(int Id)
         {
-            try {
+            try
+            {
                 var userFromDB = await _db.Users.Include(u => u.image).FirstOrDefaultAsync(u => u.Id == Id);
                 var user = new UserModel
                 {
@@ -81,13 +82,14 @@ namespace RestaurantAppServer.Controllers
         }
         [Authorize(Roles = "user")]
         [HttpPut("updateUser/{Id}")]
-        public async Task<IActionResult> UpdateUser(int Id,[FromForm] UpdateUserModel um, IFormFile file)
+        public async Task<IActionResult> UpdateUser(int Id, [FromForm] UpdateUserModel um, IFormFile file)
         {
-            try {
+            try
+            {
                 var user = await _db.Users.Include(u => u.image).FirstOrDefaultAsync(u => u.Id == Id);
                 if (user == null)
                     return NotFound(new { status = false, message = "User not found" });
-                if (file!= null)
+                if (file != null)
                 {
                     var result = await _imageService.AddImageAsync(file);
                     if (result.Error != null)
@@ -123,7 +125,7 @@ namespace RestaurantAppServer.Controllers
                 var user = await _db.Users.Include(u => u.image).FirstOrDefaultAsync(u => u.Id == Id);
                 if (user == null)
                     return NotFound(new { status = false, message = "User not found" });
-                if(user.ImageId != null)
+                if (user.ImageId != null)
                 {
                     // Delete image from cloud
                     var imageResult = await _imageService.DeleteImageAsync(user.image.PublicId);
@@ -142,6 +144,6 @@ namespace RestaurantAppServer.Controllers
         }
 
     }
-    
+
 
 }
