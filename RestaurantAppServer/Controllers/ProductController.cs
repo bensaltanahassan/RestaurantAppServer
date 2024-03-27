@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using RestaurantAppServer.Interfaces;
 using RestaurantAppServer.Services;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 
 
 namespace RestaurantAppServer.Controllers
@@ -25,90 +27,67 @@ namespace RestaurantAppServer.Controllers
             _imageService = imageService;
         }
 
-        [HttpGet]
-        [Route("GetItems")]
-        public async Task<ActionResult<IEnumerable<Product>>> GetItems(string categoryName)
-        {
-            if (categoryName.ToLower() == "all")
-            {
-                var allProducts = await _db.Products
-                    .Include(p => p.Category)
-                    .Include(p => p.ProductImages)
-                        .ThenInclude(pi => pi.image)
-                    .Select(p => new Product
-                    {
-                        Id = p.Id,
-                        Name = p.Name,
-                        NameAn = p.NameAn,
-                        Description = p.Description,
-                        DescriptionAn = p.DescriptionAn,
-                        Price = p.Price,
-                        Discount = p.Discount,
-                        NbrOfSales = p.NbrOfSales,
-                        IsAvailable = p.IsAvailable,
-                        CategoryId = p.CategoryId,
-                        Category = new Category
-                        {
-                            Id = p.Category.Id,
-                            Name = p.Category.Name,
-                            NameAn = p.Category.NameAn
-                        },
-                        CreatedAt = p.CreatedAt,
-                        UpdatedAt = p.UpdatedAt,
-                        ProductImages = p.ProductImages.Select(pi => new ProductImages
-                        {
-                            Id = pi.Id,
-                            image = pi.image
-                        }).ToList()
-                    })
-                    .ToListAsync();
 
-                return Ok(allProducts);
-            }
-            else
+        [HttpGet]
+        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] string categoryName = "all", [FromQuery] int page = 1, [FromQuery] int limit = 20)
+        {
+            try
             {
-                var categoryExists = await _db.Categories.AnyAsync(c => c.NameAn == categoryName);
-                if (!categoryExists)
+                if (page <= 0 || limit <= 0)
+                    return BadRequest(new { status = false, message = "Invalid page or limit value" });
+
+                IQueryable<Product> query = _db.Products.Include(p => p.Category).Include(p => p.ProductImages);
+
+                if (categoryName.ToLower() != "all")
                 {
-                    return NotFound("Category not found.");
+                    query = query.Where(p => p.Category.NameAn == categoryName);
                 }
 
-                var productsByCategory = await _db.Products
-                    .Include(p => p.Category)
-                    .Include(p => p.ProductImages)
-                        .ThenInclude(pi => pi.image)
-                    .Where(p => p.Category.NameAn == categoryName)
-                    .Select(p => new Product
-                    {
-                        Id = p.Id,
-                        Name = p.Name,
-                        NameAn = p.NameAn,
-                        Description = p.Description,
-                        DescriptionAn = p.DescriptionAn,
-                        Price = p.Price,
-                        Discount = p.Discount,
-                        NbrOfSales = p.NbrOfSales,
-                        IsAvailable = p.IsAvailable,
-                        CategoryId = p.CategoryId,
-                        Category = new Category
-                        {
-                            Id = p.Category.Id,
-                            Name = p.Category.Name,
-                            NameAn = p.Category.NameAn
-                        },
-                        CreatedAt = p.CreatedAt,
-                        UpdatedAt = p.UpdatedAt,
-                        ProductImages = p.ProductImages.Select(pi => new ProductImages
-                        {
-                            Id = pi.Id,
-                            image = pi.image
-                        }).ToList()
-                    })
-                    .ToListAsync();
+                int totalItems = await query.CountAsync();
 
-                return Ok(productsByCategory);
+                int offset = (page - 1) * limit;
+                var products = await query.Skip(offset).Take(limit).Select(p => new Product
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    NameAn = p.NameAn,
+                    Description = p.Description,
+                    DescriptionAn = p.DescriptionAn,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    NbrOfSales = p.NbrOfSales,
+                    IsAvailable = p.IsAvailable,
+                    CategoryId = p.CategoryId,
+                    Category = new Category
+                    {
+                        Id = p.Category.Id,
+                        Name = p.Category.Name,
+                        NameAn = p.Category.NameAn
+                    },
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    ProductImages = p.ProductImages.Select(pi => new ProductImages
+                    {
+                        Id = pi.Id,
+                        ImageId = pi.ImageId, 
+                        image = new Image 
+                        {
+                            Id = pi.image.Id,
+                            PublicId = pi.image.PublicId,
+                            Url = pi.image.Url
+                        }
+                    }).ToList()
+                }).ToListAsync();
+
+                return Ok(new { status = true, totalItems, currentPage = page, products });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
             }
         }
+
+
 
 
         [HttpPost]
@@ -171,24 +150,33 @@ namespace RestaurantAppServer.Controllers
 
 
         [HttpPut]
-        [Route("UpdateProduct/{productId}")]
-        public async Task<IActionResult> UpdateProduct(int productId, [FromForm] ProductModel pm, IFormFile file)
+        [Route("UpdateProduct/{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, [FromForm] ProductModel pm, IFormFile file)
         {
             try
             {
-                var product = await _db.Products.FindAsync(productId);
+                var product = await _db.Products.FindAsync(id);
                 if (product == null)
                 {
                     return NotFound(new { status = false, message = "Product not found" });
                 }
 
+                product.Name = pm.Name;
+                product.NameAn = pm.NameAn;
+                product.Description = pm.Description;
+                product.DescriptionAn = pm.DescriptionAn;
+                product.Price = pm.Price;
+                product.Discount = pm.Discount;
+                product.NbrOfSales = pm.NbrOfSales;
+                product.IsAvailable = pm.IsAvailable;
+                product.CategoryId = pm.CategoryId;
+                product.UpdatedAt = DateTime.UtcNow;
+
                 if (file != null)
                 {
                     var result = await _imageService.AddImageAsync(file);
                     if (result.Error != null)
-                    {
                         return BadRequest(new { status = false, message = "Image upload failed" });
-                    }
 
                     ImageModel img = new()
                     {
@@ -205,25 +193,21 @@ namespace RestaurantAppServer.Controllers
                     await _db.Images.AddAsync(image);
                     await _db.SaveChangesAsync();
 
-                    product.ProductImages = new List<ProductImages>
+                    if (product.ProductImages.Any())
                     {
-                        new ProductImages
-                        {
-                            ImageId = image.Id
-                        }
-                    };
-                }
+                        var oldImageId = product.ProductImages.First().ImageId;
+                        var oldImage = await _db.Images.FindAsync(oldImageId);
+                        _db.Images.Remove(oldImage);
+                    }
 
-                product.Name = pm.Name;
-                product.NameAn = pm.NameAn;
-                product.Description = pm.Description;
-                product.DescriptionAn = pm.DescriptionAn;
-                product.Price = pm.Price;
-                product.Discount = pm.Discount;
-                product.NbrOfSales = pm.NbrOfSales;
-                product.IsAvailable = pm.IsAvailable;
-                product.CategoryId = pm.CategoryId;
-                product.UpdatedAt = DateTime.UtcNow;
+                    product.ProductImages = new List<ProductImages>
+            {
+                new ProductImages
+                {
+                    ImageId = image.Id
+                }
+            };
+                }
 
                 _db.Products.Update(product);
                 await _db.SaveChangesAsync();
@@ -235,6 +219,7 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
+
 
 
 
