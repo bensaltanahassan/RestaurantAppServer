@@ -249,51 +249,59 @@ namespace RestaurantAppServer.Controllers
         [Route("SearchProduct")]
         public async Task<ActionResult<IEnumerable<Product>>> SearchProduct(string productName)
         {
-            if (string.IsNullOrEmpty(productName))
+            try
             {
-                return BadRequest("Product name is required.");
-            }
-
-            var products = await _db.Products
-                .Include(p => p.Category)
-                .Include(p => p.ProductImages)
-                    .ThenInclude(pi => pi.image)
-                .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName))
-                .Select(p => new Product
+                if (string.IsNullOrEmpty(productName))
                 {
-                    Id = p.Id,
-                    Name = p.Name,
-                    NameAn = p.NameAn,
-                    Description = p.Description,
-                    DescriptionAn = p.DescriptionAn,
-                    Price = p.Price,
-                    Discount = p.Discount,
-                    NbrOfSales = p.NbrOfSales,
-                    IsAvailable = p.IsAvailable,
-                    CategoryId = p.CategoryId,
-                    Category = new Category
-                    {
-                        Id = p.Category.Id,
-                        Name = p.Category.Name,
-                        NameAn = p.Category.NameAn
-                    },
-                    CreatedAt = p.CreatedAt,
-                    UpdatedAt = p.UpdatedAt,
-                    ProductImages = p.ProductImages.Select(pi => new ProductImages
-                    {
-                        Id = pi.Id,
-                        image = pi.image
-                    }).ToList()
-                })
-                .ToListAsync();
+                    return BadRequest("Product name is required.");
+                }
 
-            if (products.Count == 0)
-            {
-                return NotFound("Product not found.");
+                var products = await _db.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName))
+                    .Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        NameAn = p.NameAn,
+                        Description = p.Description,
+                        DescriptionAn = p.DescriptionAn,
+                        Price = p.Price,
+                        Discount = p.Discount,
+                        NbrOfSales = p.NbrOfSales,
+                        IsAvailable = p.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            image = pi.image
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                if (products.Count == 0)
+                {
+                    return NotFound("Product not found.");
+                }
+
+                return Ok(products);
             }
-
-            return Ok(products);
+            catch (Exception ex)
+            {
+                return BadRequest(new { status = false, message = ex.Message });
+            }
         }
+
 
 
     }
