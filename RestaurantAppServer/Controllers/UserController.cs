@@ -61,19 +61,24 @@ namespace RestaurantAppServer.Controllers
             try
             {
                 var userFromDB = await _db.Users.Include(u => u.image).FirstOrDefaultAsync(u => u.Id == Id);
-                var user = new UserModel
+                if(userFromDB != null)
                 {
-                    Id = userFromDB.Id,
-                    FullName = userFromDB.FullName,
-                    Email = userFromDB.Email,
-                    Phone = userFromDB.Phone,
-                    Address = userFromDB.Address,
-                    ImageUrl = userFromDB.image?.Url,
-                    IsVerified = userFromDB.IsVerified,
-                    CreatedAt = userFromDB.CreatedAt,
-                    UpdatedAt = userFromDB.UpdatedAt
-                };
-                return Ok(new { status = "Success", user });
+                    var user = new UserModel
+                    {
+                        Id = userFromDB.Id,
+                        FullName = userFromDB.FullName,
+                        Email = userFromDB.Email,
+                        Phone = userFromDB.Phone,
+                        Address = userFromDB.Address,
+                        ImageUrl = userFromDB.image?.Url,
+                        IsVerified = userFromDB.IsVerified,
+                        CreatedAt = userFromDB.CreatedAt,
+                        UpdatedAt = userFromDB.UpdatedAt
+                    };
+                    return Ok(new { status = "Success", user });
+                }
+                return NotFound(new { status = false, message = "User not found" });
+                
             }
             catch (Exception e)
             {

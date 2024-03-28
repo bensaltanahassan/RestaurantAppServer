@@ -6,7 +6,7 @@ using RestaurantAppServer.Data;
 using RestaurantAppServer.Models.auth;
 using RestaurantAppServer.Models.auth.admin;
 using RestaurantAppServer.Models.auth.user;
-using RestaurantAppServer.Utils;
+using RestaurantAppServer.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -29,46 +29,65 @@ namespace RestaurantAppServer.Controllers.auth
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginAdmin adminObj)
         {
-            var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == adminObj.Email);
-            if (admin == null)
+            try
             {
-                return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
-            }
-            if (adminObj.Password == admin.Password)
-            {
-                var claims = new List<Claim>
+                var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == adminObj.Email);
+                if (admin == null)
+                {
+                    return NotFound(new Response { Status = "Error", Message = "User doesn't exist !" });
+                }
+                if (adminObj.Password == admin.Password)
+                {
+                    var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Email, admin.Email),
                     new Claim(ClaimTypes.Role, "admin"),
                     new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString())
                 };
-                var jwtToken = _jwtTokenService.GetToken(claims);
-                var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-                return Ok(new
-                {
-                    token = token,
-                    expiration = jwtToken.ValidTo,
-                    admin = new
+                    var jwtToken = _jwtTokenService.GetToken(claims);
+                    var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                    return Ok(new
                     {
-                        Email = admin.Email,
-                    }
-                });
+                        status = true,
+                        data = new
+                        {
+                            token = token,
+                            expiration = jwtToken.ValidTo,
+                            admin = new
+                            {
+                                Email = admin.Email,
+                            }
+                        }
+                    });
+                }
+                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
             }
-            return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
+            }
         }
+
         [HttpPost("resetPassword")]
         [Authorize(Roles = "admin")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordAdmin resetPassword)
         {
-            var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
-            if (admin == null)
+            try
             {
-                return NotFound(new Response { Status = "Error", Message = "Admin doesn't exist! " });
+                var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
+                if (admin == null)
+                {
+                    return NotFound(new Response { Status = "Error", Message = "Admin doesn't exist! " });
+                }
+                admin.Password = resetPassword.Password;
+                _db.Admins.Update(admin);
+                await _db.SaveChangesAsync();
+                return Ok(new Response { Status = "Success", Message = "Password has been reset!" });
             }
-            admin.Password = resetPassword.Password;
-            _db.Admins.Update(admin);
-            await _db.SaveChangesAsync();
-            return Ok(new Response { Status = "Success", Message = "Password has been reset!" });
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
+            }
         }
     }
 }
