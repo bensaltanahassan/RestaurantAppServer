@@ -121,14 +121,14 @@ namespace RestaurantAppServer.Controllers.auth
                 {
                     return NotFound(new Response { Status = false, Message = "User doesn't exist!" });
                 }
-                
+
                 if (!BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
                 {
-                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
+                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = false, Message = "Email or password are incorrect!" });
                 }
                 if (!user.IsVerified)
                 {
-                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "Email is not verified!" });
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = true, Message = "Email is not verified!" });
                 }
                 var claims = new List<Claim>
                     {
@@ -159,7 +159,8 @@ namespace RestaurantAppServer.Controllers.auth
                     }
                 });
 
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
