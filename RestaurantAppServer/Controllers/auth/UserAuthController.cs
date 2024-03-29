@@ -128,7 +128,7 @@ namespace RestaurantAppServer.Controllers.auth
                 }
                 if (!user.IsVerified)
                 {
-                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = true, Message = "Email is not verified!" });
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = false, Message = "Email is not verified!" });
                 }
                 var claims = new List<Claim>
                     {
