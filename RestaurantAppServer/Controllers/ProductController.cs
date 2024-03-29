@@ -296,10 +296,6 @@ namespace RestaurantAppServer.Controllers
                     })
                     .ToListAsync();
 
-                if (products.Count == 0)
-                {
-                    return NotFound(new { status = false, message = "Product not found." });
-                }
 
                 return Ok(new { status = true, products });
             }
