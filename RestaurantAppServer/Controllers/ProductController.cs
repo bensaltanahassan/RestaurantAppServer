@@ -10,6 +10,7 @@ using RestaurantAppServer.Interfaces;
 using RestaurantAppServer.Services;
 using System.Text.Json.Serialization;
 using System.Text.Json;
+using System.Globalization;
 
 
 namespace RestaurantAppServer.Controllers
@@ -29,7 +30,7 @@ namespace RestaurantAppServer.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] int categoryId = 0, [FromQuery] int page = 1, [FromQuery] int limit = 20)
+        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] int? categoryId, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
             try
             {
@@ -38,7 +39,7 @@ namespace RestaurantAppServer.Controllers
 
                 IQueryable<Product> query = _db.Products.Include(p => p.Category).Include(p => p.ProductImages);
 
-                if (categoryId != 0)
+                if (categoryId != null)
                 {
                     query = query.Where(p => p.CategoryId == categoryId);
                 }
@@ -94,6 +95,11 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
+                if (double.TryParse(pm.Price, NumberStyles.Float, CultureInfo.InvariantCulture, out double price) == false)
+                {
+                    return BadRequest(new { status = false, message = "Invalid price value" });
+                }
+
                 var result = await _imageService.AddImageAsync(file);
                 if (result.Error != null)
                     return BadRequest(new { status = false, message = "Image upload failed" });
@@ -113,13 +119,16 @@ namespace RestaurantAppServer.Controllers
                 await _db.Images.AddAsync(image);
                 await _db.SaveChangesAsync();
 
+
+
+
                 Product product = new()
                 {
                     Name = pm.Name,
                     NameAn = pm.NameAn,
                     Description = pm.Description,
                     DescriptionAn = pm.DescriptionAn,
-                    Price = pm.Price,
+                    Price = price,
                     Discount = pm.Discount,
                     NbrOfSales = pm.NbrOfSales,
                     IsAvailable = pm.IsAvailable,
@@ -142,7 +151,7 @@ namespace RestaurantAppServer.Controllers
             }
             catch (Exception e)
             {
-                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message, });
             }
         }
 
@@ -163,7 +172,7 @@ namespace RestaurantAppServer.Controllers
                 product.NameAn = pm.NameAn;
                 product.Description = pm.Description;
                 product.DescriptionAn = pm.DescriptionAn;
-                product.Price = pm.Price;
+                product.Price = double.Parse(pm.Price);
                 product.Discount = pm.Discount;
                 product.NbrOfSales = pm.NbrOfSales;
                 product.IsAvailable = pm.IsAvailable;

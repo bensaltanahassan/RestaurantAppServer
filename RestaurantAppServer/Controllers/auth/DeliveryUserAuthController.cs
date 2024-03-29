@@ -34,7 +34,7 @@ namespace RestaurantAppServer.Controllers.auth
                 var deliveryMan = await _db.DeliveryMen.FirstOrDefaultAsync(u => u.Email == deliveryManObj.Email);
                 if (deliveryMan == null)
                 {
-                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = false, Message = "User doesn't exist! " });
                 }
                 if (deliveryManObj.Password == deliveryMan.Password)
                 {
@@ -60,14 +60,14 @@ namespace RestaurantAppServer.Controllers.auth
                         status = true,
                     });
                 }
-                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
+                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = false, Message = "Username or password are incorrect!" });
             }
             catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
         }
-        
+
         [HttpPost("resetPassword")]
         [Authorize(Roles = "delivery")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDeliveryUser resetPassword)
@@ -77,12 +77,12 @@ namespace RestaurantAppServer.Controllers.auth
                 var deliveryMan = await _db.DeliveryMen.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
                 if (deliveryMan == null)
                 {
-                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "Delivery User doesn't exist! " });
+                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = false, Message = "Delivery User doesn't exist! " });
                 }
                 deliveryMan.Password = resetPassword.Password;
                 _db.DeliveryMen.Update(deliveryMan);
                 await _db.SaveChangesAsync();
-                return Ok(new Response { Status = "Success", Message = "Password has been reset!" });
+                return Ok(new Response { Status = true, Message = "Password has been reset!" });
             }
             catch (Exception e)
             {

@@ -61,7 +61,7 @@ namespace RestaurantAppServer.Controllers
             try
             {
                 var userFromDB = await _db.Users.Include(u => u.image).FirstOrDefaultAsync(u => u.Id == Id);
-                if(userFromDB != null)
+                if (userFromDB != null)
                 {
                     var user = new UserModel
                     {
@@ -78,7 +78,7 @@ namespace RestaurantAppServer.Controllers
                     return Ok(new { status = "Success", user });
                 }
                 return NotFound(new { status = false, message = "User not found" });
-                
+
             }
             catch (Exception e)
             {
@@ -114,7 +114,7 @@ namespace RestaurantAppServer.Controllers
                 user.UpdatedAt = DateTime.Now;
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
-                return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "User Updated successfully" });
+                return StatusCode(StatusCodes.Status200OK, new Response { Status = true, Message = "User Updated successfully" });
             }
             catch (Exception e)
             {
@@ -140,7 +140,7 @@ namespace RestaurantAppServer.Controllers
                 }
                 _db.Users.Remove(user);
                 await _db.SaveChangesAsync();
-                return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "User Deleted successfully" });
+                return StatusCode(StatusCodes.Status200OK, new Response { Status = true, Message = "User Deleted successfully" });
             }
             catch (Exception e)
             {

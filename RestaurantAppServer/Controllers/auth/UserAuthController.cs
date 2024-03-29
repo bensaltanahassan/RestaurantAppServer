@@ -37,7 +37,7 @@ namespace RestaurantAppServer.Controllers.auth
                 var userExists = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
                 if (userExists != null)
                 {
-                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "User already exists!" });
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = false, Message = "User already exists!" });
                 }
                 User user = new()
                 {
@@ -50,9 +50,9 @@ namespace RestaurantAppServer.Controllers.auth
                 };
                 var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+                new(ClaimTypes.Name, user.FullName),
+                new(ClaimTypes.Email, user.Email),
+                new(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
                 var jwtToken = _jwtTokenService.GetToken(claims);
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
@@ -62,16 +62,17 @@ namespace RestaurantAppServer.Controllers.auth
 
                 if (result.State != EntityState.Added)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error" });
+                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = false, Message = "Internal Server Error" });
                 }
                 await _db.SaveChangesAsync();
 
                 var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token, email = user.Email }, Request.Scheme);
                 var message = new Message(new string[] { user.Email }, "Email Confirmation", $"<h1>Welcome to Restaurant App</h1><p>Please confirm your email by <a href='{confirmationLink}'>clicking here</a></p>");
                 _emailService.SendEmail(message);
-                return StatusCode(StatusCodes.Status201Created, new Response { Status = "Success", Message = $"User created and email sent to {user.Email} successfully!" });
+                return StatusCode(StatusCodes.Status201Created, new Response { Status = true, Message = $"User created and email sent to {user.Email} successfully!" });
 
-            } catch (Exception e)
+            }
+            catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
@@ -84,7 +85,7 @@ namespace RestaurantAppServer.Controllers.auth
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
                 if (user == null)
                 {
-                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = false, Message = "User doesn't exist! " });
                 }
                 else
                 {
@@ -95,11 +96,11 @@ namespace RestaurantAppServer.Controllers.auth
                         user.UpdatedAt = DateTime.UtcNow;
                         _db.Users.Update(user);
                         await _db.SaveChangesAsync();
-                        return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Email confirmed successfully" });
+                        return StatusCode(StatusCodes.Status200OK, new Response { Status = true, Message = "Email confirmed successfully" });
                     }
                     else
                     {
-                        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Email failed to be confirmed! " });
+                        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = false, Message = "Email failed to be confirmed! " });
                     }
                 }
             }
@@ -118,7 +119,7 @@ namespace RestaurantAppServer.Controllers.auth
                             .Include(u => u.image).FirstOrDefaultAsync();
                 if (user == null)
                 {
-                    return NotFound(new Response { Status = "Error", Message = "User doesn't exist!" });
+                    return NotFound(new Response { Status = false, Message = "User doesn't exist!" });
                 }
                 
                 if (!BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
@@ -178,14 +179,15 @@ namespace RestaurantAppServer.Controllers.auth
                     user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(10);
                     _db.Users.Update(user);
                     await _db.SaveChangesAsync();
-                    Message message = new Message(new string[] { user.Email! }, "Confirmation code email", $"Hi , {user.FullName} this is your confirmation code for reseting your password : '{confirmationCode}'");
+                    Message message = new(new string[] { user.Email! }, "Confirmation code email", $"Hi , {user.FullName} this is your confirmation code for reseting your password : '{confirmationCode}'");
 
                     _emailService.SendEmail(message);
-                    return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = $"Reset password code sent successfully to {user.Email}" });
+                    return StatusCode(StatusCodes.Status200OK, new Response { Status = true, Message = $"Reset password code sent successfully to {user.Email}" });
                 }
 
-                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
-            }catch(Exception e)
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = false, Message = "User doesn't exist! " });
+            }
+            catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
@@ -199,11 +201,11 @@ namespace RestaurantAppServer.Controllers.auth
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
                 if (user == null)
                 {
-                    return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
+                    return NotFound(new Response { Status = false, Message = "User doesn't exist! " });
                 }
                 if (user.ResetCode != resetPassword.ResetCode || user.ResetCodeExpiry < DateTime.UtcNow)
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Reset code is invalid or expired!" });
+                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = false, Message = "Reset code is invalid or expired!" });
 
                 }
                 user.Password = BCrypt.Net.BCrypt.HashPassword(resetPassword.Password);
@@ -212,14 +214,14 @@ namespace RestaurantAppServer.Controllers.auth
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
 
-                return Ok(new Response { Status = "Success", Message = "Password has been reset !" });
+                return Ok(new Response { Status = true, Message = "Password has been reset !" });
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
         }
 
-        
+
     }
 }
