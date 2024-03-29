@@ -254,13 +254,13 @@ namespace RestaurantAppServer.Controllers
 
         [HttpGet]
         [Route("SearchProduct")]
-        public async Task<ActionResult<IEnumerable<Product>>> SearchProduct(string productName)
+        public async Task<ActionResult<IEnumerable<Product>>> SearchProduct([FromQuery] string productName)
         {
             try
             {
                 if (string.IsNullOrEmpty(productName))
                 {
-                    return BadRequest("Product name is required.");
+                    return BadRequest(new { status = false, message = "Product name is required." });
                 }
 
                 var products = await _db.Products
@@ -298,14 +298,14 @@ namespace RestaurantAppServer.Controllers
 
                 if (products.Count == 0)
                 {
-                    return NotFound("Product not found.");
+                    return NotFound(new { status = false, message = "Product not found." });
                 }
 
-                return Ok(products);
+                return Ok(new { status = true, products });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { status = false, message = ex.Message });
+                return StatusCode(500, new { status = false, message = ex.Message });
             }
         }
 
