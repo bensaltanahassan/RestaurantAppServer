@@ -30,7 +30,7 @@ namespace RestaurantAppServer.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] int categoryId = 0, [FromQuery] int page = 1, [FromQuery] int limit = 20)
+        public async Task<IActionResult> GetAllProductsInCategory([FromQuery] int? categoryId, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
             try
             {
@@ -39,7 +39,7 @@ namespace RestaurantAppServer.Controllers
 
                 IQueryable<Product> query = _db.Products.Include(p => p.Category).Include(p => p.ProductImages);
 
-                if (categoryId != 0)
+                if (categoryId != null)
                 {
                     query = query.Where(p => p.CategoryId == categoryId);
                 }
