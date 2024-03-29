@@ -24,7 +24,42 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var topProducts = await _db.Products.Take(5).OrderByDescending(p => p.Discount).ToListAsync();
+                var topProducts = await _db.Products.Take(limitPerCategory)
+                    .Where(p => p.IsAvailable)
+                    .OrderByDescending(p => p.Discount)
+                    .Select(p => new
+                    {
+                        p.Id,
+                        p.Name,
+                        p.NameAn,
+                        p.Description,
+                        p.DescriptionAn,
+                        p.Price,
+                        p.Discount,
+                        p.NbrOfSales,
+                        p.IsAvailable,
+                        p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        p.CreatedAt,
+                        p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            ImageId = pi.ImageId,
+                            image = new Image
+                            {
+                                Id = pi.image.Id,
+                                PublicId = pi.image.PublicId,
+                                Url = pi.image.Url
+                            }
+                        }).ToList()
+                    }).ToArrayAsync();
+
                 var categories = await _db.Categories
                     .Include(c => c.image)
                     .Select(
@@ -33,7 +68,8 @@ namespace RestaurantAppServer.Controllers
                             Category = c,
                             Products = _db.Products
                                 .OrderByDescending(p => p.NbrOfSales)
-                                .Where(p => p.CategoryId == c.Id)
+                                .OrderByDescending(p => p.Discount)
+                                .Where(p => p.CategoryId == c.Id && p.IsAvailable)
                                 .Take(limitPerCategory)
                                 .Select(p => new
                                 {
