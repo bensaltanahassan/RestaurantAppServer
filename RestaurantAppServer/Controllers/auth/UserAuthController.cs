@@ -124,11 +124,11 @@ namespace RestaurantAppServer.Controllers.auth
                 
                 if (!BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
                 {
-                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
+                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = false, Message = "Email or password are incorrect!" });
                 }
                 if (!user.IsVerified)
                 {
-                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "Email is not verified!" });
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = false, Message = "Email is not verified!" });
                 }
                 var claims = new List<Claim>
                     {
