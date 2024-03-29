@@ -268,13 +268,14 @@ namespace RestaurantAppServer.Controllers
                 int offset = (page - 1) * limit;
 
                 var products = await _db.Products
+                    .Where(p => (p.Name.Contains(productName) || p.NameAn.Contains(productName))
+                                 && (categoryId == null || p.CategoryId == categoryId)
+                                 && p.IsAvailable
+                    )
                     .Include(p => p.Category)
                     .Include(p => p.ProductImages)
                         .ThenInclude(pi => pi.image)
-                    .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName)
-                                 && categoryId != null ? p.CategoryId == categoryId : true
-                                 && p.IsAvailable
-                    )
+
                     .Skip(offset)
                     .Take(limit)
                     .Select(p => new Product
