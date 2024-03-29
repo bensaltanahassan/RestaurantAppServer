@@ -6,14 +6,11 @@ using RestaurantAppServer.Models.auth.user;
 using RestaurantAppServer.Service.Services;
 using RestaurantAppServer.Models.auth;
 using RestaurantAppServer.Service.Models;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using CloudinaryDotNet.Actions;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
-using RestaurantAppServer.Utils;
+using RestaurantAppServer.Services;
 
 namespace RestaurantAppServer.Controllers.auth
 {
@@ -35,166 +32,188 @@ namespace RestaurantAppServer.Controllers.auth
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterUser userObj)
         {
-            var userExists = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
-            if (userExists != null)
+            try
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "User already exists!" });
-            }
-            User user = new()
-            {
-                FullName = userObj.FullName,
-                Email = userObj.Email,
-                Phone = userObj.Phone,
-                Password = BCrypt.Net.BCrypt.HashPassword(userObj.Password),
-                Address = userObj.Adress,
-                IsVerified = false
-            };
-            var claims = new List<Claim>
+                var userExists = await _db.Users.FirstOrDefaultAsync(u => u.Email == userObj.Email);
+                if (userExists != null)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "User already exists!" });
+                }
+                User user = new()
+                {
+                    FullName = userObj.FullName,
+                    Email = userObj.Email,
+                    Phone = userObj.Phone,
+                    Password = BCrypt.Net.BCrypt.HashPassword(userObj.Password),
+                    Address = userObj.Adress,
+                    IsVerified = false
+                };
+                var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
             };
-            var jwtToken = GetToken(claims);
-            var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-            user.EmailVerificationToken = token;
+                var jwtToken = _jwtTokenService.GetToken(claims);
+                var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                user.EmailVerificationToken = token;
 
-            var result = await _db.Users.AddAsync(user);
+                var result = await _db.Users.AddAsync(user);
 
-            if (result.State != EntityState.Added)
+                if (result.State != EntityState.Added)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error" });
+                }
+                await _db.SaveChangesAsync();
+
+                var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token, email = user.Email }, Request.Scheme);
+                var message = new Message(new string[] { user.Email }, "Email Confirmation", $"<h1>Welcome to Restaurant App</h1><p>Please confirm your email by <a href='{confirmationLink}'>clicking here</a></p>");
+                _emailService.SendEmail(message);
+                return StatusCode(StatusCodes.Status201Created, new Response { Status = "Success", Message = $"User created and email sent to {user.Email} successfully!" });
+
+            } catch (Exception e)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Internal Server Error" });
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
-            await _db.SaveChangesAsync();
-
-            var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token, email = user.Email }, Request.Scheme);
-            var message = new Message(new string[] { user.Email }, "Email Confirmation", $"<h1>Welcome to Restaurant App</h1><p>Please confirm your email by <a href='{confirmationLink}'>clicking here</a></p>");
-            _emailService.SendEmail(message);
-            return StatusCode(StatusCodes.Status201Created, new Response { Status = "Success", Message = $"User created and email sent to {user.Email} successfully!" });
-
         }
         [HttpGet("confirmEmail")]
         public async Task<IActionResult> ConfirmEmail(string token, string email)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
+            try
             {
-                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
-            }
-            else
-            {
-                if (user.EmailVerificationToken == token)
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+                if (user == null)
                 {
-                    user.IsVerified = true;
-                    user.EmailVerificationToken = null;
-                    user.UpdatedAt = DateTime.UtcNow;
-                    _db.Users.Update(user);
-                    await _db.SaveChangesAsync();
-                    return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Email confirmed successfully" });
+                    return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
                 }
                 else
                 {
-                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Email failed to be confirmed! " });
+                    if (user.EmailVerificationToken == token)
+                    {
+                        user.IsVerified = true;
+                        user.EmailVerificationToken = null;
+                        user.UpdatedAt = DateTime.UtcNow;
+                        _db.Users.Update(user);
+                        await _db.SaveChangesAsync();
+                        return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = "Email confirmed successfully" });
+                    }
+                    else
+                    {
+                        return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Email failed to be confirmed! " });
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginUser userObj)
         {
-            var user = await _db.Users.Where(u => u.Email == userObj.Email)
+            try
+            {
+                var user = await _db.Users.Where(u => u.Email == userObj.Email)
                             .Include(u => u.image).FirstOrDefaultAsync();
-            if (user == null)
-            {
-                return NotFound(new Response { Status = "Error", Message = "User doesn't exist!" });
-            }
-            if (BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
-            {
-                var claims = new List<Claim>
+                if (user == null)
+                {
+                    return NotFound(new Response { Status = "Error", Message = "User doesn't exist!" });
+                }
+                if (BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
+                {
+                    var claims = new List<Claim>
                 {
                 new Claim(ClaimTypes.Name, user.FullName),
                 new Claim(ClaimTypes.Email, user.Email),
                 new Claim(ClaimTypes.Role, "user"),
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
                 };
-                var jwtToken = _jwtTokenService.GetToken(claims);
-                var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-                return Ok(new
-                {
-                    status = "Success",
-                    token,
-                    expiration = jwtToken.ValidTo,
-                    user = new
+                    var jwtToken = _jwtTokenService.GetToken(claims);
+                    var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                    return Ok(new
                     {
-                        user.Id,
-                        user.FullName,
-                        user.Email,
-                        user.Phone,
-                        user.Address,
-                        user.ImageId,
-                        user.image
-                    }
-                });
+                        status = true,
+                        data = new
+                        {
+                            token,
+                            expiration = jwtToken.ValidTo,
+                            user = new
+                            {
+                                user.Id,
+                                user.FullName,
+                                user.Email,
+                                user.Phone,
+                                user.Address,
+                                user.ImageId,
+                                user.image
+                            }
+                        }
+                    });
+                }
+                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
+            } catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
-            return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
         }
 
         [HttpPost("forgotPassword")]
         [AllowAnonymous]
-        public async Task<IActionResult> ForgotPassword([Required] string Email)
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPassword fp)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == Email);
-            if (user != null)
+            try
             {
-                var confirmationCode = Guid.NewGuid().ToString();
-                user.ResetCode = confirmationCode;
-                user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(10);
-                _db.Users.Update(user);
-                await _db.SaveChangesAsync();
-                Message message = new Message(new string[] { user.Email! }, "Confirmation code email", $"Hi , {user.FullName} this is your confirmation code for reseting your password : '{confirmationCode}'");
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == fp.Email);
+                if (user != null)
+                {
+                    var confirmationCode = Guid.NewGuid().ToString();
+                    user.ResetCode = confirmationCode;
+                    user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(10);
+                    _db.Users.Update(user);
+                    await _db.SaveChangesAsync();
+                    Message message = new Message(new string[] { user.Email! }, "Confirmation code email", $"Hi , {user.FullName} this is your confirmation code for reseting your password : '{confirmationCode}'");
 
-                _emailService.SendEmail(message);
-                return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = $"Reset password code sent successfully to {user.Email}" });
+                    _emailService.SendEmail(message);
+                    return StatusCode(StatusCodes.Status200OK, new Response { Status = "Success", Message = $"Reset password code sent successfully to {user.Email}" });
+                }
+
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
+            }catch(Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
-
-            return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User doesn't exist! " });
-
         }
         [HttpPost("resetPassword")]
         [AllowAnonymous]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordUser resetPassword)
         {
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
-            if (user == null)
+            try
             {
-                return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
+                if (user == null)
+                {
+                    return NotFound(new Response { Status = "Error", Message = "User doesn't exist! " });
+                }
+                if (user.ResetCode != resetPassword.ResetCode || user.ResetCodeExpiry < DateTime.UtcNow)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Reset code is invalid or expired!" });
+
+                }
+                user.Password = BCrypt.Net.BCrypt.HashPassword(resetPassword.Password);
+                user.ResetCode = null;
+                user.ResetCodeExpiry = null;
+                _db.Users.Update(user);
+                await _db.SaveChangesAsync();
+
+                return Ok(new Response { Status = "Success", Message = "Password has been reset !" });
             }
-            if (user.ResetCode != resetPassword.ResetCode || user.ResetCodeExpiry < DateTime.UtcNow)
+            catch(Exception e)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = "Reset code is invalid or expired!" });
-
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
-            user.Password = BCrypt.Net.BCrypt.HashPassword(resetPassword.Password);
-            user.ResetCode = null;
-            user.ResetCodeExpiry = null;
-            _db.Users.Update(user);
-            await _db.SaveChangesAsync();
-
-            return Ok(new Response { Status = "Success", Message = "Password has been reset !" });
         }
 
-        private JwtSecurityToken GetToken(List<Claim> claims)
-        {
-            var authSigninKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JWT:SecretKey"]));
-            var token = new JwtSecurityToken(
-                issuer: _config["JWT:ValidIssuer"],
-                audience: _config["JWT:ValidAudience"],
-                expires: DateTime.Now.AddDays(1),
-                claims: claims,
-                signingCredentials: new SigningCredentials(authSigninKey, SecurityAlgorithms.HmacSha256)
-            );
-
-            return token;
-        }
+        
     }
 }

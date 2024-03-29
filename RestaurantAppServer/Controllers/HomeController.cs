@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -116,5 +117,163 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
             }
         }
+
+        [HttpGet]
+        [Route("PromoWeb")]
+        public async Task<IActionResult> GetHomePromo()
+        {
+            try
+            {
+                var productsWithDiscounts = await _db.Products
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .Where(p => p.Discount > 0)
+                    .ToListAsync();
+
+                var productsPerCategory = productsWithDiscounts
+                    .GroupBy(p => p.CategoryId)
+                    .Select(group => new
+                    {
+                        CategoryId = group.Key,
+                        Product = group.OrderBy(p => Guid.NewGuid()).FirstOrDefault() 
+                    })
+                    .Select(p => new
+                    {
+                        Id = p.Product?.Id,
+                        Name = p.Product?.Name,
+                        NameAn = p.Product?.NameAn,
+                        Description = p.Product?.Description,
+                        DescriptionAn = p.Product?.DescriptionAn,
+                        Price = p.Product?.Price,
+                        Discount = p.Product?.Discount,
+                        NbrOfSales = p.Product?.NbrOfSales,
+                        IsAvailable = p.Product?.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new
+                        {
+                            Id = p.Product?.Category?.Id,
+                            Name = p.Product?.Category?.Name,
+                            NameAn = p.Product?.Category?.NameAn
+                        },
+                        CreatedAt = p.Product?.CreatedAt,
+                        UpdatedAt = p.Product?.UpdatedAt,
+                        ProductImages = p.Product?.ProductImages.Select(pi => new
+                        {
+                            Id = pi.Id,
+                            ImageId = pi.ImageId,
+                            image = new
+                            {
+                                Id = pi.image.Id,
+                                PublicId = pi.image.PublicId,
+                                Url = pi.image.Url
+                            }
+                        }).ToList()
+                    }).ToList();
+
+                return Ok(new { status = true, productsPerCategory });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
+            }
+        }
+
+
+        [HttpGet]
+        [Route("RandomProductWeb")]
+        public async Task<IActionResult> GetRandomProducts([FromQuery] int limit)
+        {
+            try
+            {
+                if (limit <= 0)
+                    return BadRequest("Invalid count value");
+
+                var randomProducts = await _db.Products
+                    .OrderBy(p => Guid.NewGuid()) 
+                    .Take(limit) 
+                    .Include(p => p.Category) 
+                    .Include(p => p.ProductImages)
+                        .ThenInclude(pi => pi.image)
+                    .ToListAsync();
+
+                var formattedProducts = randomProducts.Select(p => new
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    NameAn = p.NameAn,
+                    Description = p.Description,
+                    DescriptionAn = p.DescriptionAn,
+                    Price = p.Price,
+                    Discount = p.Discount,
+                    NbrOfSales = p.NbrOfSales,
+                    IsAvailable = p.IsAvailable,
+                    CategoryId = p.CategoryId,
+                    Category = new
+                    {
+                        Id = p.Category.Id,
+                        Name = p.Category.Name,
+                        NameAn = p.Category.NameAn
+                    },
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    ProductImages = p.ProductImages.Select(pi => new ProductImages
+                    {
+                        Id = pi.Id,
+                        ImageId = pi.ImageId,
+                        image = new Image
+                        {
+                            Id = pi.image.Id,
+                            PublicId = pi.image.PublicId,
+                            Url = pi.image.Url
+                        }
+                    }).ToList()
+                }).ToList();
+
+                return Ok(new { status = true, data = formattedProducts });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error" });
+            }
+        }
+
+        [HttpGet]
+        [Route("GetReview")]
+        public async Task<ActionResult<IEnumerable<Review>>> GetReviews()
+        {
+            var reviews = await _db.Reviews
+                .Include(r => r.user)
+                .Include(r => r.user.image)
+                .ToListAsync();
+
+            return Ok(reviews);
+        }
+
+        [HttpPost]
+        [Route("AddReview")]
+        public async Task<IActionResult> CreateReview([FromForm] ReviewModel reviewModel)
+        {
+            try
+            {
+                var review = new Review
+                {
+                    UserId = reviewModel.UserId,
+                    Comment = reviewModel.Comment,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _db.Reviews.Add(review);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Review created successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+
     }
 }

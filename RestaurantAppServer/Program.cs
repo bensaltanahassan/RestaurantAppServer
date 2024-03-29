@@ -1,13 +1,17 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Interfaces;
 using RestaurantAppServer.Service.Models;
 using RestaurantAppServer.Service.Services;
 using RestaurantAppServer.Services;
 using RestaurantAppServer.Utils;
+using System.Net;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,24 +23,11 @@ builder.Services.AddDbContext<AppDbContext>(op
 );
 
 // adding authentication using jwt
-builder.Services.AddAuthentication(o =>
-{
-    o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    o.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-}).AddJwtBearer(o =>
-{
-    o.SaveToken = true;
-    o.RequireHttpsMetadata = false;
-    o.TokenValidationParameters = new()
-    {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidAudience = builder.Configuration["JWT:Issuer"],
-        ValidIssuer = builder.Configuration["JWT:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:SecretKey"]))
-    };
-});
+
+builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>, JwtBearerOptionsConfigurator>();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer();
+
 
 // configure swagger for jwt token
 
@@ -66,8 +57,12 @@ builder.Services.AddSwaggerGen(c =>
          }
     });
 });
+
 //Add token service config 
 builder.Services.AddSingleton<JwtTokenService>();
+
+
+
 
 //add email config
 var emailConfig = builder.Configuration
