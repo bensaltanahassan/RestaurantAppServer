@@ -254,7 +254,7 @@ namespace RestaurantAppServer.Controllers
 
         [HttpGet]
         [Route("SearchProduct")]
-        public async Task<ActionResult<IEnumerable<Product>>> SearchProduct([FromQuery] string productName)
+        public async Task<ActionResult<IEnumerable<Product>>> SearchProduct([FromQuery] string productName, [FromQuery] int? categoryId, [FromQuery] int page = 1, [FromQuery] int limit = 20)
         {
             try
             {
@@ -263,11 +263,19 @@ namespace RestaurantAppServer.Controllers
                     return BadRequest(new { status = false, message = "Product name is required." });
                 }
 
+                if (page <= 0 || limit <= 0)
+                    return BadRequest(new { status = false, message = "Invalid page or limit value" });
+                int offset = (page - 1) * limit;
+
                 var products = await _db.Products
                     .Include(p => p.Category)
                     .Include(p => p.ProductImages)
                         .ThenInclude(pi => pi.image)
-                    .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName))
+                    .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName)
+                                 && (categoryId == null || p.CategoryId == categoryId) //if the categoryId is null, it will return all products
+                    )
+                    .Skip(offset)
+                    .Take(limit)
                     .Select(p => new Product
                     {
                         Id = p.Id,
