@@ -34,7 +34,7 @@ namespace RestaurantAppServer.Controllers.auth
                 var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == adminObj.Email);
                 if (admin == null)
                 {
-                    return NotFound(new Response { Status = "Error", Message = "User doesn't exist !" });
+                    return NotFound(new Response { Status = false, Message = "User doesn't exist !" });
                 }
                 if (adminObj.Password == admin.Password)
                 {
@@ -60,7 +60,7 @@ namespace RestaurantAppServer.Controllers.auth
                         }
                     });
                 }
-                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Username or password are incorrect!" });
+                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = false, Message = "Username or password are incorrect!" });
             }
             catch (Exception e)
             {
@@ -77,12 +77,12 @@ namespace RestaurantAppServer.Controllers.auth
                 var admin = await _db.Admins.FirstOrDefaultAsync(u => u.Email == resetPassword.Email);
                 if (admin == null)
                 {
-                    return NotFound(new Response { Status = "Error", Message = "Admin doesn't exist! " });
+                    return NotFound(new Response { Status = false, Message = "Admin doesn't exist! " });
                 }
                 admin.Password = resetPassword.Password;
                 _db.Admins.Update(admin);
                 await _db.SaveChangesAsync();
-                return Ok(new Response { Status = "Success", Message = "Password has been reset!" });
+                return Ok(new Response { Status = true, Message = "Password has been reset!" });
             }
             catch (Exception e)
             {
