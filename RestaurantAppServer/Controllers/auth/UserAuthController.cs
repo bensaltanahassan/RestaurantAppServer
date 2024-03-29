@@ -120,38 +120,44 @@ namespace RestaurantAppServer.Controllers.auth
                 {
                     return NotFound(new Response { Status = "Error", Message = "User doesn't exist!" });
                 }
-                if (BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
+                
+                if (!BCrypt.Net.BCrypt.Verify(userObj.Password, user.Password))
                 {
-                    var claims = new List<Claim>
-                {
-                new Claim(ClaimTypes.Name, user.FullName),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, "user"),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
-                };
-                    var jwtToken = _jwtTokenService.GetToken(claims);
-                    var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
-                    return Ok(new
-                    {
-                        status = true,
-                        data = new
-                        {
-                            token,
-                            expiration = jwtToken.ValidTo,
-                            user = new
-                            {
-                                user.Id,
-                                user.FullName,
-                                user.Email,
-                                user.Phone,
-                                user.Address,
-                                user.ImageId,
-                                user.image
-                            }
-                        }
-                    });
+                    return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
                 }
-                return StatusCode(StatusCodes.Status401Unauthorized, new Response { Status = "Error", Message = "Email or password are incorrect!" });
+                if (!user.IsVerified)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = "Error", Message = "Email is not verified!" });
+                }
+                var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, user.FullName),
+                        new Claim(ClaimTypes.Email, user.Email),
+                        new Claim(ClaimTypes.Role, "user"),
+                        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString())
+                    };
+                var jwtToken = _jwtTokenService.GetToken(claims);
+                var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                return Ok(new
+                {
+                    status = true,
+                    data = new
+                    {
+                        token,
+                        expiration = jwtToken.ValidTo,
+                        user = new
+                        {
+                            user.Id,
+                            user.FullName,
+                            user.Email,
+                            user.Phone,
+                            user.Address,
+                            user.ImageId,
+                            user.image
+                        }
+                    }
+                });
+
             } catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
