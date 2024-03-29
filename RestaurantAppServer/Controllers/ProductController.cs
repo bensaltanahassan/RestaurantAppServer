@@ -37,7 +37,7 @@ namespace RestaurantAppServer.Controllers
                 if (page <= 0 || limit <= 0)
                     return BadRequest(new { status = false, message = "Invalid page or limit value" });
 
-                IQueryable<Product> query = _db.Products.Include(p => p.Category).Include(p => p.ProductImages);
+                IQueryable<Product> query = _db.Products.Where(p => p.IsAvailable).Include(p => p.Category).Include(p => p.ProductImages);
 
                 if (categoryId != null)
                 {
@@ -272,7 +272,8 @@ namespace RestaurantAppServer.Controllers
                     .Include(p => p.ProductImages)
                         .ThenInclude(pi => pi.image)
                     .Where(p => p.Name.Contains(productName) || p.NameAn.Contains(productName)
-                                 && (categoryId == null || p.CategoryId == categoryId) //if the categoryId is null, it will return all products
+                                 && categoryId != null ? p.CategoryId == categoryId : true
+                                 && p.IsAvailable
                     )
                     .Skip(offset)
                     .Take(limit)
