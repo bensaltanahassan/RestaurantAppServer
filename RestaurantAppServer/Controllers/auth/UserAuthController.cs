@@ -154,7 +154,8 @@ namespace RestaurantAppServer.Controllers.auth
                             user.Phone,
                             user.Address,
                             user.ImageId,
-                            user.image
+                            user.image,
+                            user.CreatedAt,
                         }
                     }
                 });

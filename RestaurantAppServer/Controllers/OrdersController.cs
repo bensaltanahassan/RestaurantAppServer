@@ -35,6 +35,7 @@ namespace RestaurantAppServer.Controllers
                         o.Id,
                         o.TotalPrice,
                         o.Adress,
+                        o.UserId,
                         o.PhoneNumber,
                         o.PaymentMethod,
                         o.PaymentStatus,
@@ -67,6 +68,7 @@ namespace RestaurantAppServer.Controllers
                     .Select(o => new
                     {
                         o.Id,
+                        o.UserId,
                         o.TotalPrice,
                         o.Adress,
                         o.PhoneNumber,
@@ -79,6 +81,7 @@ namespace RestaurantAppServer.Controllers
                         {
                             oi.Id,
                             oi.Quantity,
+                            oi.OrderId,
                             Product = new
                             {
                                 oi.product.Id,
@@ -145,6 +148,7 @@ namespace RestaurantAppServer.Controllers
                     .Select(o => new
                     {
                         o.Id,
+                        o.UserId,
                         o.TotalPrice,
                         o.Adress,
                         o.PhoneNumber,

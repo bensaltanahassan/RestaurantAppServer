@@ -31,7 +31,6 @@ namespace RestaurantAppServer.Controllers
                     TotalPrice = order.TotalPrice,
                     PhoneNumber = order.PhoneNumber,
                     OrderStatus = order.OrderStatus,
-
                 };
                 await _db.Orders.AddAsync(newOrder);
                 await _db.SaveChangesAsync();
