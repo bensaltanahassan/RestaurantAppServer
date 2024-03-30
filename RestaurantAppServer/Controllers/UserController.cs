@@ -85,18 +85,27 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Couldn't search the users", err = e.Message });
             }
         }
-        [Authorize(Roles = "user")]
+        // [Authorize(Roles = "user")]
         [HttpPut("updateUser/{Id}")]
-        public async Task<IActionResult> UpdateUser(int Id, [FromForm] UpdateUserModel um, IFormFile file)
+        public async Task<IActionResult> UpdateUser(int Id, [FromForm] UpdateUserModel um)
         {
             try
             {
                 var user = await _db.Users.Include(u => u.image).FirstOrDefaultAsync(u => u.Id == Id);
                 if (user == null)
                     return NotFound(new { status = false, message = "User not found" });
-                if (file != null)
+                if (um.File != null)
                 {
-                    var result = await _imageService.AddImageAsync(file);
+                    int? oldImgId;
+                    if (user.image != null)
+                    {
+                        oldImgId = user.image.Id;
+                    }
+                    else
+                    {
+                        oldImgId = null;
+                    }
+                    var result = await _imageService.AddImageAsync(um.File);
                     if (result.Error != null)
                         return BadRequest(new { status = false, message = "Image upload failed" });
                     Image image = new()
@@ -106,6 +115,18 @@ namespace RestaurantAppServer.Controllers
                     };
                     user.image = image;
                     await _db.Images.AddAsync(image);
+                    if (oldImgId != null)
+                    {
+                        var oldImage = await _db.Images.FirstOrDefaultAsync(i => i.Id == oldImgId);
+                        if (oldImage != null)
+                        {
+                            // Delete image from cloud
+                            var imageResult = await _imageService.DeleteImageAsync(oldImage.PublicId);
+                            if (imageResult.Error != null)
+                                return BadRequest(new { status = false, message = "Failed to delete old image" });
+                            _db.Images.Remove(oldImage);
+                        }
+                    }
                     await _db.SaveChangesAsync();
                 }
                 user.FullName = um.FullName ?? user.FullName;
@@ -114,14 +135,36 @@ namespace RestaurantAppServer.Controllers
                 user.UpdatedAt = DateTime.Now;
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
-                return StatusCode(StatusCodes.Status200OK, new Response { Status = true, Message = "User Updated successfully" });
+                return StatusCode(StatusCodes.Status200OK, new
+                {
+                    Status = true,
+                    Message = "User Updated successfully",
+                    user = new
+                    {
+                        user.Id,
+                        user.FullName,
+                        user.Email,
+                        user.Phone,
+                        user.Address,
+                        user.CreatedAt,
+                        user.UpdatedAt,
+                        image = new
+                        {
+                            user.image?.Id,
+                            user.image?.PublicId,
+                            user.image?.Url
+                        }
+
+
+                    }
+                });
             }
             catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
-        [Authorize(Roles = "user")]
+        // [Authorize(Roles = "user")]
         [HttpDelete("deleteUser/{Id}")]
         public async Task<IActionResult> DeleteUser(int Id)
         {
