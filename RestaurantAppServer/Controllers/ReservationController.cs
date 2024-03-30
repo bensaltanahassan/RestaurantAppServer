@@ -7,6 +7,8 @@ using RestaurantAppServer.Data.Models;
 using RestaurantAppServer.helpers.enums;
 using RestaurantAppServer.Models;
 
+#nullable enable
+
 namespace RestaurantAppServer.Controllers
 {
     [Route("api/[controller]")]
@@ -20,14 +22,14 @@ namespace RestaurantAppServer.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllReservations([FromQuery] int page = 1, [FromQuery] int limit = 30, [FromQuery] string status = "all")
+        public async Task<IActionResult> GetAllReservations([FromQuery] string? status, [FromQuery] int page = 1, [FromQuery] int limit = 30)
         {
             try
             {
                 if (page <= 0 || limit <= 0) return BadRequest(new { status = false, message = "Invalid page or limit value" });
                 IQueryable<Reservation> query = _db.Reservations.Include(r => r.table);
-                if (status.ToLower() != "all")
-                    query = query.Where(r => r.Status.ToLower() == status.ToLower());
+                if (status != null)
+                    query = query.Where(r => r.Status!.ToLower() == status.ToLower());
 
                 int totalItems = await query.CountAsync();
 
@@ -51,13 +53,11 @@ namespace RestaurantAppServer.Controllers
             {
                 Reservation rv = new()
                 {
-                    FirstName = rm.FirstName,
-                    LastName = rm.LastName,
+                    FullName = rm.fullName,
                     Phone = rm.Phone,
                     Date = rm.Date,
                     Status = ReservationStatus.Pending.ToString(),
                     NbrOfPeople = rm.NbrOfPeople,
-                    TableId = rm.TableId,
                 };
                 await _db.Reservations.AddAsync(rv);
                 await _db.SaveChangesAsync();
