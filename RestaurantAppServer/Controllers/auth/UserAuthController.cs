@@ -49,11 +49,11 @@ namespace RestaurantAppServer.Controllers.auth
                     IsVerified = false
                 };
                 var claims = new List<Claim>
-            {
-                new(ClaimTypes.Name, user.FullName),
-                new(ClaimTypes.Email, user.Email),
-                new(ClaimTypes.NameIdentifier, user.Id.ToString())
-            };
+                {
+                    new(ClaimTypes.Name, user.FullName),
+                    new(ClaimTypes.Email, user.Email),
+                    new(ClaimTypes.NameIdentifier, user.Id.ToString())
+                };
                 var jwtToken = _jwtTokenService.GetToken(claims);
                 var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
                 user.EmailVerificationToken = token;
@@ -223,7 +223,41 @@ namespace RestaurantAppServer.Controllers.auth
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
             }
         }
-
+        [HttpPost("resendEmailVerification")]
+        public async Task<IActionResult> ResendEmailVerification([FromBody] ResendEmailVerification resendEmail)
+        {
+            try
+            {
+                var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == resendEmail.Email);
+                if (user == null)
+                {
+                    return NotFound(new Response { Status = false, Message = "User doesn't exist! " });
+                }
+                if (user.IsVerified)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new Response { Status = false, Message = "Email is already verified!" });
+                }
+                var claims = new List<Claim>
+                {
+                    new(ClaimTypes.Name, user.FullName),
+                    new(ClaimTypes.Email, user.Email),
+                    new(ClaimTypes.NameIdentifier, user.Id.ToString())
+                };
+                var jwtToken = _jwtTokenService.GetToken(claims);
+                var token = new JwtSecurityTokenHandler().WriteToken(jwtToken);
+                user.EmailVerificationToken = token;
+                _db.Users.Update(user);
+                await _db.SaveChangesAsync();
+                var confirmationLink = Url.Action("ConfirmEmail", "UserAuth", new { token = token, email = user.Email }, Request.Scheme);
+                var message = new Message(new string[] { user.Email }, "Email Confirmation", $"<h1>Welcome to Restaurant App</h1><p>Please confirm your email by <a href='{confirmationLink}'>clicking here</a></p>");
+                _emailService.SendEmail(message);
+                return StatusCode(StatusCodes.Status200OK, new Response { Status = true, Message = "Email sent successfully!" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err = e.Message });
+            }
+        }
 
     }
 }

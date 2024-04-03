@@ -132,6 +132,10 @@ namespace RestaurantAppServer.Controllers
                 user.FullName = um.FullName ?? user.FullName;
                 user.Phone = um.Phone ?? user.Phone;
                 user.Address = um.Address ?? user.Address;
+                if(um.Password != null)
+                {
+                    user.Password = BCrypt.Net.BCrypt.HashPassword(um.Password);
+                }
                 user.UpdatedAt = DateTime.Now;
                 _db.Users.Update(user);
                 await _db.SaveChangesAsync();
