@@ -152,14 +152,7 @@ namespace RestaurantAppServer.Controllers
                         user.Address,
                         user.CreatedAt,
                         user.UpdatedAt,
-                        image = new
-                        {
-                            user.image?.Id,
-                            user.image?.PublicId,
-                            user.image?.Url
-                        }
-
-
+                        user.image?.Url
                     }
                 });
             }
