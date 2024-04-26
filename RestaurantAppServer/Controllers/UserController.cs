@@ -85,7 +85,7 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Couldn't search the users", err = e.Message });
             }
         }
-        // [Authorize(Roles = "user")]
+        [Authorize(Roles = "user")]
         [HttpPut("updateUser/{Id}")]
         public async Task<IActionResult> UpdateUser(int Id, [FromForm] UpdateUserModel um)
         {
@@ -161,7 +161,7 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
             }
         }
-        // [Authorize(Roles = "user")]
+        [Authorize(Roles = "user")]
         [HttpDelete("deleteUser/{Id}")]
         public async Task<IActionResult> DeleteUser(int Id)
         {
