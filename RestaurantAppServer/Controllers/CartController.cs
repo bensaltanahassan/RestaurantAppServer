@@ -166,6 +166,31 @@ namespace RestaurantAppServer.Controllers
 
         }
 
+        [HttpDelete("DeleteAll/{userId}")]
+        public async Task<IActionResult> DeleteAllProductsFromCart(int userId)
+        {
+            try
+            {
+                var cartItems = await _db.OrderItems
+                    .Where(oi => oi.UserId == userId && oi.order == null)
+                    .ToListAsync();
+
+                if (cartItems == null || cartItems.Count == 0)
+                {
+                    return NotFound(new { status = false, message = "Cart items not found for the user" });
+                }
+
+                _db.OrderItems.RemoveRange(cartItems);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "All products deleted from cart successfully" });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
+            }
+        }
+
 
     }
 }
