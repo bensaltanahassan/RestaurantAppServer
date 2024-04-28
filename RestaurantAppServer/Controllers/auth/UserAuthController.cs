@@ -175,7 +175,8 @@ namespace RestaurantAppServer.Controllers.auth
                 var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == fp.Email);
                 if (user != null)
                 {
-                    var confirmationCode = Guid.NewGuid().ToString();
+                    var random = new Random();
+                    var confirmationCode = random.Next(100000, 999999).ToString();
                     user.ResetCode = confirmationCode;
                     user.ResetCodeExpiry = DateTime.UtcNow.AddMinutes(10);
                     _db.Users.Update(user);
