@@ -22,14 +22,29 @@ namespace RestaurantAppServer.Controllers
             _db = db;
             _imageService = imageService;
         }
-        [Authorize(Roles = "admin")]
+        // [Authorize(Roles = "admin")]
         [HttpGet("getAllUsers")]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllUsers([FromQuery] int? userId, [FromQuery] bool? userStatus, [FromQuery] int page = 1, [FromQuery] int limit = 30)
         {
             try
             {
-                //TODO: add eager loading
-                var users = await _db.Users.Include(u => u.image).ToListAsync();
+                IQueryable<User> query = _db.Users;
+                if (userId != null)
+                {
+                    query = query.Where(u => u.Id == userId);
+                }
+                if (userStatus != null)
+                {
+                    query = query.Where(u => u.IsVerified == userStatus);
+                }
+                int totalItems = await query.CountAsync();
+                int offset = (page - 1) * limit;
+
+                var users = await _db.Users
+                    .OrderByDescending(u => u.CreatedAt)
+                    .Skip(offset)
+                    .Take(limit)
+                    .Include(u => u.image).ToListAsync();
                 var usersList = new List<UserModel>();
                 foreach (var user in users)
                 {
@@ -47,14 +62,13 @@ namespace RestaurantAppServer.Controllers
                     });
                 }
 
-                return Ok(new { status = "Success", usersList });
+                return Ok(new { status = true, totalUsers = totalItems, users = usersList });
             }
             catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Couldn't search the users", err = e.Message });
             }
         }
-        [Authorize(Roles = "admin")]
         [HttpGet("getUserById")]
         public async Task<IActionResult> GetUserById(int Id)
         {
@@ -75,7 +89,7 @@ namespace RestaurantAppServer.Controllers
                         CreatedAt = userFromDB.CreatedAt,
                         UpdatedAt = userFromDB.UpdatedAt
                     };
-                    return Ok(new { status = "Success", user });
+                    return Ok(new { status = true, user });
                 }
                 return NotFound(new { status = false, message = "User not found" });
 
@@ -132,7 +146,7 @@ namespace RestaurantAppServer.Controllers
                 user.FullName = um.FullName ?? user.FullName;
                 user.Phone = um.Phone ?? user.Phone;
                 user.Address = um.Address ?? user.Address;
-                if(um.Password != null)
+                if (um.Password != null)
                 {
                     user.Password = BCrypt.Net.BCrypt.HashPassword(um.Password);
                 }

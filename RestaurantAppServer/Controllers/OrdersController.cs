@@ -20,22 +20,37 @@ namespace RestaurantAppServer.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllOrders([FromQuery] int page = 1, [FromQuery] int limit = 30)
+        public async Task<IActionResult> GetAllOrders([FromQuery] int? orderId, [FromQuery] string? OrderStatus, [FromQuery] int page = 1, [FromQuery] int limit = 30)
         {
             try
             {
                 IQueryable<Order> query = _db.Orders;
+                if (orderId != null)
+                {
+                    query = query.Where(o => o.Id == orderId);
+                }
+                if (OrderStatus != null)
+                {
+                    query = query.Where(o => o.OrderStatus == OrderStatus);
+                }
                 int totalItems = await query.CountAsync();
                 int offset = (page - 1) * limit;
                 var orders = await query
+                    .OrderByDescending(o => o.CreatedAt)
                     .Skip(offset)
                     .Take(limit)
+                    .Include(o => o.user)
                     .Select(o => new
                     {
                         o.Id,
                         o.TotalPrice,
                         o.Adress,
                         o.UserId,
+                        User = new
+                        {
+                            o.user.FullName,
+                            o.user.Email,
+                        },
                         o.PhoneNumber,
                         o.PaymentMethod,
                         o.PaymentStatus,
@@ -43,7 +58,7 @@ namespace RestaurantAppServer.Controllers
                         o.CreatedAt,
                         o.UpdatedAt,
                     }).ToListAsync();
-                return Ok(new { status = true, orders });
+                return Ok(new { status = true, orders, totalItems });
             }
             catch (Exception err)
             {
@@ -61,6 +76,7 @@ namespace RestaurantAppServer.Controllers
             {
                 var order = await _db.Orders
                     .Where(o => o.Id == orderId)
+                    .Include(o => o.user)
                     .Include(o => o.orderItems)
                         .ThenInclude(oi => oi.product)
                             .ThenInclude(p => p.ProductImages)
@@ -69,6 +85,13 @@ namespace RestaurantAppServer.Controllers
                     {
                         o.Id,
                         o.UserId,
+                        User = new
+                        {
+                            o.user.FullName,
+                            o.user.Email,
+                            o.user.Phone,
+                            o.user.Address,
+                        },
                         o.TotalPrice,
                         o.Adress,
                         o.PhoneNumber,
@@ -165,11 +188,5 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", err = err.Message });
             }
         }
-
-
-
-
-
-
     }
 }
