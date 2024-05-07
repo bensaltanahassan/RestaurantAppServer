@@ -214,7 +214,6 @@ namespace RestaurantAppServer.Controllers
 
 
 
-
         [HttpPut]
         [Route("UpdateProduct/{id}")]
         public async Task<IActionResult> UpdateProduct(int id, [FromForm] ProductModel pm, IFormFile file)
@@ -227,11 +226,16 @@ namespace RestaurantAppServer.Controllers
                     return NotFound(new { status = false, message = "Product not found" });
                 }
 
+                if (double.TryParse(pm.Price, NumberStyles.Float, CultureInfo.InvariantCulture, out double price) == false)
+                {
+                    return BadRequest(new { status = false, message = "Invalid price value" });
+                }
+
                 product.Name = pm.Name;
                 product.NameAn = pm.NameAn;
                 product.Description = pm.Description;
                 product.DescriptionAn = pm.DescriptionAn;
-                product.Price = double.Parse(pm.Price);
+                product.Price = price; 
                 product.Discount = pm.Discount;
                 product.NbrOfSales = pm.NbrOfSales;
                 product.IsAvailable = pm.IsAvailable;
