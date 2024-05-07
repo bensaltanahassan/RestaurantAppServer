@@ -18,12 +18,12 @@ namespace RestaurantAppServer.Services
                 ApiSecret = configs.Value.ApiSecret
             };
             _cloudinary = new Cloudinary(acc);
-        }   
+        }
 
         public async Task<ImageUploadResult> AddImageAsync(IFormFile file)
         {
             var uploadResult = new ImageUploadResult();
-            if(file.Length > 0)
+            if (file.Length > 0)
             {
                 using var stream = file.OpenReadStream();
                 stream.Position = 0;
