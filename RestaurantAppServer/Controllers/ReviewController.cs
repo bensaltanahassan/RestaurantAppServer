@@ -21,12 +21,13 @@ namespace RestaurantAppServer.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Review>>> GetReviews()
         {
+
             var reviews = await _db.Reviews
-                .Include(r => r.user) 
-                .Include(r => r.user.image) 
+                .Include(r => r.user)
+                .Include(r => r.user.image)
                 .ToListAsync();
 
-            return Ok(reviews);
+            return Ok(new { status = true, reviews });
         }
 
         [HttpGet("{userId}")]
@@ -37,12 +38,9 @@ namespace RestaurantAppServer.Controllers
                 .Where(r => r.UserId == userId)
                 .ToListAsync();
 
-            if (reviews == null || reviews.Count == 0)
-            {
-                return NotFound("No reviews found for this user ID.");
-            }
 
-            return Ok(reviews);
+
+            return Ok(new { status = true, reviews });
         }
 
         [HttpPost]
@@ -69,7 +67,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
-        
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteReview(int id)
         {
