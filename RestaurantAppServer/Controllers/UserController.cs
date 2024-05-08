@@ -24,14 +24,14 @@ namespace RestaurantAppServer.Controllers
         }
         // [Authorize(Roles = "admin")]
         [HttpGet("getAllUsers")]
-        public async Task<IActionResult> GetAllUsers([FromQuery] int? userId, [FromQuery] bool? userStatus, [FromQuery] int page = 1, [FromQuery] int limit = 30)
+        public async Task<IActionResult> GetAllUsers([FromQuery] string? email, [FromQuery] bool? userStatus, [FromQuery] int page = 1, [FromQuery] int limit = 30)
         {
             try
             {
                 IQueryable<User> query = _db.Users;
-                if (userId != null)
+                if (email != null)
                 {
-                    query = query.Where(u => u.Id == userId);
+                    query = query.Where(u => u.Email == email);
                 }
                 if (userStatus != null)
                 {

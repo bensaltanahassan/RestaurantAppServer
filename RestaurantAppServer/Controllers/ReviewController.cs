@@ -23,6 +23,7 @@ namespace RestaurantAppServer.Controllers
         {
 
             var reviews = await _db.Reviews
+                .OrderByDescending(r => r.CreatedAt)
                 .Include(r => r.user)
                 .Include(r => r.user.image)
                 .ToListAsync();
@@ -34,12 +35,30 @@ namespace RestaurantAppServer.Controllers
         public async Task<ActionResult<IEnumerable<Review>>> GetReviewsByUserId(int userId)
         {
             var reviews = await _db.Reviews
+                .OrderByDescending(r => r.CreatedAt)
                 .Include(r => r.user)
                 .Where(r => r.UserId == userId)
+                .Select(r => new
+                {
+                    r.Id,
+                    r.Comment,
+                    r.CreatedAt,
+                    r.UpdatedAt,
+                    user = new
+                    {
+                        r.user.Id,
+                        r.user.FullName,
+                        r.user.Email,
+                        r.user.Phone,
+                        r.user.Address,
+                        image = new
+                        {
+                            r.user.image.Id,
+                            r.user.image.Url
+                        }
+                    }
+                })
                 .ToListAsync();
-
-
-
             return Ok(new { status = true, reviews });
         }
 
