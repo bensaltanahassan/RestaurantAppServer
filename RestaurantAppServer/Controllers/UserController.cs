@@ -31,7 +31,7 @@ namespace RestaurantAppServer.Controllers
                 IQueryable<User> query = _db.Users;
                 if (email != null)
                 {
-                    query = query.Where(u => u.Email == email);
+                    query = query.Where(u => u.Email.ToLower().Contains(email.ToLower()));
                 }
                 if (userStatus != null)
                 {
@@ -40,7 +40,7 @@ namespace RestaurantAppServer.Controllers
                 int totalItems = await query.CountAsync();
                 int offset = (page - 1) * limit;
 
-                var users = await _db.Users
+                var users = await query
                     .OrderByDescending(u => u.CreatedAt)
                     .Skip(offset)
                     .Take(limit)
