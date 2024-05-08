@@ -123,7 +123,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
         [HttpPut("UpdateDeliveryStatus/${orderId}")]
-        [Authorize(Roles =" delivery")]
+        [Authorize(Roles ="delivery")]
         public async Task<IActionResult> UpdateDeliveryStatus(int orderId, [FromQuery] string status)
         {
             try
@@ -140,17 +140,17 @@ namespace RestaurantAppServer.Controllers
                 }
                 delivery.Status = status switch
                 {
-                    "shipping" => DeliveryStatus.Shipping.ToString(),
-                    "delivered" => DeliveryStatus.Delivered.ToString(),
-                    _ => DeliveryStatus.Pending.ToString(),
-                };
-                _db.Delivries.Update(delivery);
-                order.OrderStatus = status switch
-                {
-                    "shipping" => DeliveryStatus.Shipping.ToString(),
                     "delivered" => DeliveryStatus.Delivered.ToString(),
                     _ => DeliveryStatus.Shipping.ToString(),
                 };
+                delivery.UpdatedAt = DateTime.UtcNow;
+                _db.Delivries.Update(delivery);
+                order.OrderStatus = status switch
+                {
+                    "delivered" => DeliveryStatus.Delivered.ToString(),
+                    _ => DeliveryStatus.Shipping.ToString(),
+                };
+                order.UpdatedAt = DateTime.UtcNow;
                 _db.Orders.Update(order);
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Status Updated Successfully" });
