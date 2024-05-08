@@ -22,7 +22,6 @@ namespace RestaurantAppServer.Data.Models
         public int UserId { get; set; }
         public User user { get; set; }
 
-
         [JsonProperty("ProductImages")]
         public List<OrderItem> orderItems { get; set; }
     }
