@@ -55,6 +55,7 @@ namespace RestaurantAppServer.Controllers.auth
                             expiration = jwtToken.ValidTo,
                             admin = new
                             {
+                                Id = admin.Id,
                                 Email = admin.Email,
                             }
                         }

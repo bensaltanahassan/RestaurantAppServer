@@ -4,9 +4,9 @@ namespace RestaurantAppServer.helpers.enums
     {
         Pending,
         Confirmed,
-        Canceled,
+        Cancelled,
         CheckedIn,
-        CheckedOut,
+        Completed,
         NoShow
 
     }
