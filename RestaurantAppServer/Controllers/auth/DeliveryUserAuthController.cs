@@ -36,7 +36,7 @@ namespace RestaurantAppServer.Controllers.auth
                 {
                     return StatusCode(StatusCodes.Status404NotFound, new Response { Status = false, Message = "User doesn't exist! " });
                 }
-                if (deliveryManObj.Password == deliveryMan.Password)
+                if (BCrypt.Net.BCrypt.Verify(deliveryManObj.Password, deliveryMan.Password))
                 {
                     var claims = new List<Claim>
                 {
