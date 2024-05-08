@@ -81,9 +81,9 @@ namespace RestaurantAppServer.Controllers
                 rv.Status = status switch
                 {
                     "confirm" => ReservationStatus.Confirmed.ToString(),
-                    "cancel" => ReservationStatus.Canceled.ToString(),
+                    "cancel" => ReservationStatus.Cancelled.ToString(),
                     "check-in" => ReservationStatus.CheckedIn.ToString(),
-                    "check-out" => ReservationStatus.CheckedOut.ToString(),
+                    "check-out" => ReservationStatus.Completed.ToString(),
                     "no-show" => ReservationStatus.NoShow.ToString(),
                     _ => ReservationStatus.Pending.ToString(),
                 };
