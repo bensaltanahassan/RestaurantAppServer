@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.helpers.enums;
+using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
 {
@@ -136,13 +138,24 @@ namespace RestaurantAppServer.Controllers
                             oi.UpdatedAt
                         }).ToList()
                     }).FirstOrDefaultAsync();
-
                 if (order == null)
                 {
                     return NotFound(new { status = false, message = "Order not found" });
                 }
-
-                return Ok(new { status = true, order });
+                if (order.OrderStatus == DeliveryStatus.Pending.ToString())
+                {
+                    return Ok(new { status = true, order });
+                }
+                var delivery = await _db.Delivries
+                    .Where(d => d.orderId == orderId)
+                    .Include(d => d.deliveryMan)
+                    .Select(d => new
+                    {
+                        deliveryId = d.deliveryMan.Id,
+                        deliveryName = d.deliveryMan.FullName,
+                    }).FirstOrDefaultAsync();
+                var response = new { status = true, order, delivery };
+                return Ok(response);
             }
             catch (Exception err)
             {
@@ -150,6 +163,62 @@ namespace RestaurantAppServer.Controllers
             }
 
         }
+
+
+
+        [HttpPut("ConfirmOrder")]
+        public async Task<IActionResult> ConfirmOrder([FromBody] ConfirmOrderModel cm)
+        {
+            try
+            {
+                var isExistDeliveryMan = await _db.DeliveryMen.FirstOrDefaultAsync(u => u.Id == cm.DeliveryManId);
+                if (isExistDeliveryMan == null)
+                {
+                    return NotFound(new { status = false, message = "Delivery Man not found" });
+                }
+                var order = await _db.Orders.FirstOrDefaultAsync(o => o.Id == cm.OrderId);
+                if (order == null)
+                {
+                    return NotFound(new { status = false, message = "Order not found" });
+                }
+
+
+                var isDeliveryExist = await _db.Delivries.FirstOrDefaultAsync(d => d.orderId == cm.OrderId);
+                if (isDeliveryExist != null)
+                {
+                    return BadRequest(new { status = false, message = "Delivery already exist" });
+                }
+
+                order.OrderStatus = DeliveryStatus.Shipping.ToString();
+                _db.Orders.Update(order);
+
+                var delivery = new Delivery
+                {
+                    orderId = cm.OrderId,
+                    deliveryManId = cm.DeliveryManId,
+                    Status = DeliveryStatus.Shipping.ToString(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+
+                _db.Delivries.Add(delivery);
+
+                delivery.deliveryMan.Status = DeliveryStatus.Shipping.ToString();
+                _db.DeliveryMen.Update(delivery.deliveryMan);
+                await _db.SaveChangesAsync();
+                return Ok(new { status = true, message = "Order confirmed successfully" });
+
+
+
+
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", err.Message });
+            }
+        }
+
 
 
         [HttpGet("users/{userId}")]

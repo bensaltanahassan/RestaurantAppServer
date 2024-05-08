@@ -19,7 +19,7 @@ namespace RestaurantAppServer.Controllers
             _db = db;
         }
         [HttpPost("RegisterDeliveryMan")]
-        [Authorize(Roles = "admin")]
+        // [Authorize(Roles = "admin")]
         public async Task<IActionResult> CreateDeliveryMan([FromForm] DeliveryManModel dm)
         {
             try
@@ -49,7 +49,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
         [HttpGet("GetAllDeliveryMan")]
-        [Authorize(Roles = "admin")]
+        // [Authorize(Roles = "admin")]
         public async Task<IActionResult> GetAllDeliveryMan([FromQuery] int page = 1, [FromQuery] int limit = 10)
         {
             try
@@ -63,7 +63,7 @@ namespace RestaurantAppServer.Controllers
                 var deliveryMenResponse = new List<DeliveryMenResponse>();
                 foreach (var deliveryMan in deliveryMen)
                 {
-                    var ordersOnShipping = await _db.Delivries.Where(x => x.deliveryManId == deliveryMan.Id).Where(x=> x.Status==DeliveryStatus.Shipping.ToString()).CountAsync();
+                    var ordersOnShipping = await _db.Delivries.Where(x => x.deliveryManId == deliveryMan.Id).Where(x => x.Status == DeliveryStatus.Shipping.ToString()).CountAsync();
                     var ordersDelivered = await _db.Delivries.Where(x => x.deliveryManId == deliveryMan.Id).Where(x => x.Status == DeliveryStatus.Delivered.ToString()).CountAsync();
                     deliveryMenResponse.Add(new DeliveryMenResponse
                     {
@@ -83,7 +83,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
         [HttpGet("GetDeliveryManById/{id}")]
-        [Authorize(Roles = "admin")]
+        // [Authorize(Roles = "admin")]
         public async Task<IActionResult> GetDeliveryManById(int id)
         {
             try
@@ -93,9 +93,9 @@ namespace RestaurantAppServer.Controllers
                 {
                     return StatusCode(StatusCodes.Status404NotFound, new { status = false, message = "Delivery doesn't exist" });
                 }
-                var ordersOnShipping = await _db.Delivries.Where(x=>x.deliveryManId==id).Where(x => x.Status == DeliveryStatus.Shipping.ToString()).Include(x=>x.order.TotalPrice).ToListAsync();
+                var ordersOnShipping = await _db.Delivries.Where(x => x.deliveryManId == id).Where(x => x.Status == DeliveryStatus.Shipping.ToString()).Include(x => x.order.TotalPrice).ToListAsync();
                 var ordersDelivered = await _db.Delivries.Where(x => x.deliveryManId == id).Where(x => x.Status == DeliveryStatus.Delivered.ToString()).Include(x => x.order.TotalPrice).ToListAsync();
-                return Ok(new { status = true,message="Data retrived successfully", data = new { ordersOnShipping, ordersDelivered } });
+                return Ok(new { status = true, message = "Data retrived successfully", data = new { ordersOnShipping, ordersDelivered } });
             }
             catch (Exception e)
             {
@@ -103,7 +103,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
         [HttpDelete("DeleteDeliveryMan/{id}")]
-        [Authorize(Roles = "admin")]
+        // [Authorize(Roles = "admin")]
         public async Task<IActionResult> DeleteDeliveryMan(int id)
         {
             try
@@ -123,7 +123,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
         [HttpPut("UpdateDeliveryStatus/${orderId}")]
-        [Authorize(Roles ="delivery")]
+        // [Authorize(Roles ="delivery")]
         public async Task<IActionResult> UpdateDeliveryStatus(int orderId, [FromQuery] string status)
         {
             try
@@ -162,7 +162,7 @@ namespace RestaurantAppServer.Controllers
         }
 
         [HttpPut("UpdateDeliveryManStatus/${id}")]
-        [Authorize(Roles = "delivery")]
+        // [Authorize(Roles = "delivery")]
         public async Task<IActionResult> UpdateDeliveryManStatus(int id, [FromQuery] string status)
         {
             try
