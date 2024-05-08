@@ -108,12 +108,13 @@ namespace RestaurantAppServer.Controllers
         {
             try
             {
-                var deliveryManExist = await _db.DeliveryMen.FindAsync(id);
-                if (deliveryManExist == null)
+                var deliveryMan = await _db.DeliveryMen.FindAsync(id);
+                if (deliveryMan == null)
                 {
                     return StatusCode(StatusCodes.Status404NotFound, new { status = false, message = "Delivery doesn't exist" });
                 }
-                _db.DeliveryMen.Remove(deliveryManExist);
+                deliveryMan.Status = DeliveryManStatus.OffService.ToString();
+                _db.DeliveryMen.Update(deliveryMan);
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "DeliveryMan Deleted Successfully" });
             }

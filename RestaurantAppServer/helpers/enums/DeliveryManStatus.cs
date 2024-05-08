@@ -4,6 +4,7 @@
     {
         Available,
         Busy,
-        Vacation
+        Vacation,
+        OffService
     }
 }
