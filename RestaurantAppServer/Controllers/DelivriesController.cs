@@ -20,7 +20,7 @@ namespace RestaurantAppServer.Controllers
         }
         [HttpPost("RegisterDeliveryMan")]
         // [Authorize(Roles = "admin")]
-        public async Task<IActionResult> CreateDeliveryMan([FromForm] DeliveryManModel dm)
+        public async Task<IActionResult> CreateDeliveryMan([FromBody] DeliveryManModel dm)
         {
             try
             {
@@ -93,8 +93,8 @@ namespace RestaurantAppServer.Controllers
                 {
                     return StatusCode(StatusCodes.Status404NotFound, new { status = false, message = "Delivery doesn't exist" });
                 }
-                var ordersOnShipping = await _db.Delivries.Where(x => x.deliveryManId == id).Where(x => x.Status == DeliveryStatus.Shipping.ToString()).Include(x => x.order.TotalPrice).ToListAsync();
-                var ordersDelivered = await _db.Delivries.Where(x => x.deliveryManId == id).Where(x => x.Status == DeliveryStatus.Delivered.ToString()).Include(x => x.order.TotalPrice).ToListAsync();
+                var ordersOnShipping = await _db.Delivries.Where(x => x.deliveryManId == id).Where(x => x.Status == DeliveryStatus.Shipping.ToString()).Include(x => x.order).ToListAsync();
+                var ordersDelivered = await _db.Delivries.Where(x => x.deliveryManId == id).Where(x => x.Status == DeliveryStatus.Delivered.ToString()).Include(x => x.order).ToListAsync();
                 return Ok(new { status = true, message = "Data retrived successfully", data = new { ordersOnShipping, ordersDelivered } });
             }
             catch (Exception e)
