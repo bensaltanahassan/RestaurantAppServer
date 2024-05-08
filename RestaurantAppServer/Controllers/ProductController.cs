@@ -155,6 +155,64 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("AddImages/{id}")]
+        public async Task<IActionResult> AddImages(int id, IEnumerable<IFormFile> files)
+        {
+            try
+            {
+                var product = await _db.Products.FindAsync(id);
+                if (product == null)
+                {
+                    return NotFound(new { status = false, message = "Product not found" });
+                }
+
+                List<Image> images = [];
+                foreach (var file in files)
+                {
+                    var result = await _imageService.AddImageAsync(file);
+                    if (result.Error != null)
+                        return BadRequest(new { status = false, message = "Image upload failed" });
+
+                    ImageModel img = new()
+                    {
+                        PublicId = result.PublicId,
+                        Url = result.SecureUrl.AbsoluteUri
+                    };
+
+                    Image image = new()
+                    {
+                        PublicId = img.PublicId,
+                        Url = img.Url
+                    };
+                    images.Add(image);
+                }
+
+                await _db.Images.AddRangeAsync(images);
+                await _db.SaveChangesAsync();
+
+                List<ProductImages> productImages = [];
+                foreach (var img in images)
+                {
+                    productImages.Add(new ProductImages
+                    {
+                        ImageId = img.Id,
+                        ProductId = product.Id,
+                    });
+                }
+
+                await _db.ProductsImages.AddRangeAsync(productImages);
+                await _db.SaveChangesAsync();
+
+                return Ok(new { status = true, message = "Images added successfully" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+
+
 
         [HttpPut]
         [Route("UpdateProduct/{id}")]
@@ -168,11 +226,16 @@ namespace RestaurantAppServer.Controllers
                     return NotFound(new { status = false, message = "Product not found" });
                 }
 
+                if (double.TryParse(pm.Price, NumberStyles.Float, CultureInfo.InvariantCulture, out double price) == false)
+                {
+                    return BadRequest(new { status = false, message = "Invalid price value" });
+                }
+
                 product.Name = pm.Name;
                 product.NameAn = pm.NameAn;
                 product.Description = pm.Description;
                 product.DescriptionAn = pm.DescriptionAn;
-                product.Price = double.Parse(pm.Price);
+                product.Price = price; 
                 product.Discount = pm.Discount;
                 product.NbrOfSales = pm.NbrOfSales;
                 product.IsAvailable = pm.IsAvailable;
