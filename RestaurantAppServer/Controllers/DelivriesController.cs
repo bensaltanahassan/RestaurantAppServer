@@ -124,7 +124,7 @@ namespace RestaurantAppServer.Controllers
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message, });
             }
         }
-        [HttpPut("UpdateDeliveryStatus/${orderId}")]
+        [HttpPut("UpdateDeliveryStatus/{orderId}")]
         // [Authorize(Roles ="delivery")]
         public async Task<IActionResult> UpdateDeliveryStatus(int orderId, [FromQuery] string status)
         {
@@ -163,7 +163,7 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
-        [HttpPut("UpdateDeliveryManStatus/${id}")]
+        [HttpPut("UpdateDeliveryManStatus/{id}")]
         // [Authorize(Roles = "delivery")]
         public async Task<IActionResult> UpdateDeliveryManStatus(int id, [FromQuery] string status)
         {
