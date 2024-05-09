@@ -71,6 +71,7 @@ namespace RestaurantAppServer.Controllers
                         Email = deliveryMan.Email,
                         FullName = deliveryMan.FullName,
                         PhoneNumber = deliveryMan.PhoneNumber,
+                        Status = deliveryMan.Status,
                         OrdersOnShipping = ordersOnShipping,
                         OrdersDelivered = ordersDelivered,
                     });
