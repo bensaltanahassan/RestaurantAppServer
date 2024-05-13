@@ -204,14 +204,10 @@ namespace RestaurantAppServer.Controllers
 
                 _db.Delivries.Add(delivery);
 
-                delivery.deliveryMan.Status = DeliveryStatus.Shipping.ToString();
+                delivery.deliveryMan.Status = DeliveryManStatus.Busy.ToString();
                 _db.DeliveryMen.Update(delivery.deliveryMan);
                 await _db.SaveChangesAsync();
                 return Ok(new { status = true, message = "Order confirmed successfully" });
-
-
-
-
             }
             catch (Exception err)
             {
