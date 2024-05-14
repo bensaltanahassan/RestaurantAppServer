@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RestaurantAppServer.Data;
 using RestaurantAppServer.Data.Models;
+using RestaurantAppServer.helpers.enums;
 using RestaurantAppServer.Models;
 
 namespace RestaurantAppServer.Controllers
@@ -272,6 +274,53 @@ namespace RestaurantAppServer.Controllers
             catch (Exception e)
             {
                 return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message });
+            }
+        }
+        [HttpGet("DashboardData")]
+        // [Authorize(Roles = "admin")]
+        public async Task<IActionResult> GetDashboardData()
+        {
+            try
+            {
+                var totalUsers = await _db.Users.CountAsync();
+                var totalOrders = await _db.Orders.CountAsync();
+                var totalDeliveryMen = await _db.DeliveryMen.CountAsync();
+                var totalReservations = await _db.Reservations.CountAsync();
+                var reservations = await _db.Reservations.ToListAsync();
+                var deliveriesPerDayOfWeek = reservations
+                    .GroupBy(d => d.CreatedAt.DayOfWeek)
+                    .Select(g => new { DayOfWeek = (int)g.Key, Count = g.Count() })
+                    .OrderBy(g => g.DayOfWeek)
+                    .ToList();
+                var totalOrdersPending = await _db.Orders
+                    .Where(x => x.OrderStatus == DeliveryStatus.Pending.ToString())
+                    .CountAsync();
+                var totalOrdersDelivered = await _db.Orders
+                    .Where(x => x.OrderStatus == DeliveryStatus.Delivered.ToString())
+                    .CountAsync();
+                var totalOrdersShipping = await _db.Orders
+                    .Where(x => x.OrderStatus == DeliveryStatus.Shipping.ToString())
+                    .CountAsync();
+                return Ok(new
+                {
+                    status = true,
+                    meesage = "Data retrived successfully",
+                    data = new
+                    {
+                        totalUsers,
+                        totalOrders,
+                        totalDeliveryMen,
+                        totalReservations,
+                        deliveriesPerDayOfWeek,
+                        totalOrdersPending,
+                        totalOrdersDelivered,
+                        totalOrdersShipping
+                    }
+                });
+                
+            }catch(Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message, });
             }
         }
 
