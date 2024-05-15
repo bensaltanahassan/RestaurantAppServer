@@ -11,7 +11,7 @@
 *.sln.docstates
 
 # appsettings.json is a common file in ASP.NET Core projects, it contains app settings
-appsettings.json
+*.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
