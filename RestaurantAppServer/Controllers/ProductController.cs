@@ -89,6 +89,72 @@ namespace RestaurantAppServer.Controllers
             }
         }
 
+
+        [HttpGet]
+        [Route("Promo")]
+        public async Task<IActionResult> GetAllProductswithDiscount([FromQuery] int? categoryId, [FromQuery] int page = 1, [FromQuery] int limit = 20)
+        {
+            try
+            {
+                if (page <= 0 || limit <= 0)
+                    return BadRequest(new { status = false, message = "Invalid page or limit value" });
+
+                IQueryable<Product> query = _db.Products
+                    .Where(p => p.IsAvailable && p.Discount > 0)
+                    .Include(p => p.Category)
+                    .Include(p => p.ProductImages);
+
+                if (categoryId != null)
+                {
+                    query = query.Where(p => p.CategoryId == categoryId);
+                }
+
+                int totalItems = await query.CountAsync();
+
+                int offset = (page - 1) * limit;
+                var products = await query.Skip(offset).Take(limit)
+                    .Select(p => new Product
+                    {
+                        Id = p.Id,
+                        Name = p.Name,
+                        NameAn = p.NameAn,
+                        Description = p.Description,
+                        DescriptionAn = p.DescriptionAn,
+                        Price = p.Price,
+                        Discount = p.Discount,
+                        NbrOfSales = p.NbrOfSales,
+                        IsAvailable = p.IsAvailable,
+                        CategoryId = p.CategoryId,
+                        Category = new Category
+                        {
+                            Id = p.Category.Id,
+                            Name = p.Category.Name,
+                            NameAn = p.Category.NameAn
+                        },
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt,
+                        ProductImages = p.ProductImages.Select(pi => new ProductImages
+                        {
+                            Id = pi.Id,
+                            ImageId = pi.ImageId,
+                            image = new Image
+                            {
+                                Id = pi.image.Id,
+                                PublicId = pi.image.PublicId,
+                                Url = pi.image.Url
+                            }
+                        }).ToList()
+                    }).ToListAsync();
+
+                return Ok(new { status = true, totalItems, currentPage = page, products });
+            }
+            catch (Exception err)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = err.Message });
+            }
+        }
+
+
         [HttpPost]
         [Route("CreateItems")]
         public async Task<IActionResult> CreateProduct([FromForm] ProductModel pm, IFormFile file)
