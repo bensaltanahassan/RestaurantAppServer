@@ -50,11 +50,14 @@ namespace RestaurantAppServer.Controllers.auth
                     {
                         data = new
                         {
-                            token = token,
+                            token,
                             expiration = jwtToken.ValidTo,
-                            admin = new
+                            DeliveryMan = new
                             {
-                                Email = deliveryMan.Email,
+                                id = deliveryMan.Id,
+                                email = deliveryMan.Email,
+                                fullName = deliveryMan.FullName,
+                                phoneNumber = deliveryMan.PhoneNumber,
                             }
                         },
                         status = true,
@@ -69,7 +72,7 @@ namespace RestaurantAppServer.Controllers.auth
         }
 
         [HttpPost("resetPassword")]
-        [Authorize(Roles = "delivery")]
+        // [Authorize(Roles = "delivery")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDeliveryUser resetPassword)
         {
             try

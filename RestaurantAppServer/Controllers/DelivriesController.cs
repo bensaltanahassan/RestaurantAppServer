@@ -18,6 +18,69 @@ namespace RestaurantAppServer.Controllers
         {
             _db = db;
         }
+        [HttpGet("GetDeliveriesByDeliveryManId/{deliveryManId}")]
+        public async Task<IActionResult> GetDeliveriesByDeliveryManId([FromRoute] int deliveryManId, [FromQuery] int? deliveryId, [FromQuery] string? deliveryStatus, [FromQuery] int page = 1, [FromQuery] int limit = 30)
+        {
+            try
+            {
+                if (page <= 0 || limit <= 0)
+                    return BadRequest(new { status = false, message = "Invalid page or limit value" });
+                IQueryable<Delivery> query = _db.Delivries
+                    .Where(x => x.deliveryManId == deliveryManId)
+                    .Include(x => x.order)
+                        .ThenInclude(x => x.user)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .Select(x => new Delivery
+                    {
+                        Id = x.Id,
+                        Status = x.Status,
+                        CreatedAt = x.CreatedAt,
+                        UpdatedAt = x.UpdatedAt,
+                        deliveryManId = x.deliveryManId,
+                        deliveryMan = x.deliveryMan,
+                        orderId = x.orderId,
+                        order = new Order
+                        {
+                            Id = x.order.Id,
+                            OrderStatus = x.order.OrderStatus,
+                            CreatedAt = x.order.CreatedAt,
+                            UpdatedAt = x.order.UpdatedAt,
+                            UserId = x.order.UserId,
+                            Adress = x.order.Adress,
+                            PaymentStatus = x.order.PaymentStatus,
+                            user = new User
+                            {
+                                Id = x.order.user.Id,
+                                FullName = x.order.user.FullName,
+                                Email = x.order.user.Email,
+                                Phone = x.order.user.Phone,
+                                Address = x.order.user.Address,
+                            },
+                            TotalPrice = x.order.TotalPrice,
+                            PhoneNumber = x.order.PhoneNumber,
+                            PaymentMethod = x.order.PaymentMethod,
+                        }
+                    });
+                if (deliveryStatus != null)
+                {
+                    query = query.Where(x => x.Status == deliveryStatus);
+                }
+                if (deliveryId != null)
+                {
+                    query = query.Where(x => x.Id == deliveryId);
+                }
+                int totalDeliveries = await query.CountAsync();
+                int offset = (page - 1) * limit;
+                var deliveries = await query.Skip(offset).Take(limit).ToListAsync();
+                return Ok(new { status = true, totalDeliveries, currentPage = page, data = deliveries });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { status = false, message = "Internal Server Error", error = e.Message, });
+            }
+        }
+
+
         [HttpPost("RegisterDeliveryMan")]
         // [Authorize(Roles = "admin")]
         public async Task<IActionResult> CreateDeliveryMan([FromBody] DeliveryManModel dm)
